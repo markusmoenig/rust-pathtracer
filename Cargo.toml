@@ -1,0 +1,8 @@
+[workspace]
+
+members = [
+    "rust-pathtracer",
+    "renderer",
+]
+
+resolver = "2"
