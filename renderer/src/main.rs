@@ -1,6 +1,11 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
+mod analytical;
+
+use analytical::AnalyticalScene;
+use rust_pathtracer::prelude::*;
+
 use log::error;
 use pixels::{Error, Pixels, SurfaceTexture};
 use tao::{
@@ -19,7 +24,8 @@ fn main() -> Result<(), Error> {
     let width     : usize = 800;
     let height    : usize = 600;
 
-    let mut pt = rust_pathtracer::tracer::Tracer::new(width, height);
+    let scene = Box::new(AnalyticalScene::new());
+    let mut pt = Tracer::new(width, height, scene);
 
     env_logger::init();
     let event_loop = EventLoop::new();
