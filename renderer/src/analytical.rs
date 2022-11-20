@@ -15,22 +15,25 @@ impl Scene for AnalyticalScene {
         }
     }
 
-    fn hit(&self, ray: &Ray) -> bool {
+    fn hit(&self, ray: &Ray) -> Option<State> {
 
         if let Some(dist) = self.sphere(ray, PTF3::new(0.0, 0.0, 0.0), 1.0) {
-            return true;
+
+            let mut state = State::new();
+            state.hit_dist = dist;
+
+            return Some(state);
         }
 
-        false
+        None
     }
-
 }
 
 // Analytical Intersections
-// Based on https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection
 
 impl AnalyticalIntersections for AnalyticalScene {
 
+    // Based on https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection
     fn sphere(&self, ray: &Ray, center: PTF3, radius: PTF) -> Option<PTF> {
         let l = center - ray[0];
         let tca = l.dot(&ray[1]);

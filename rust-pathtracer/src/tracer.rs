@@ -62,7 +62,7 @@ impl Tracer {
 
                     let mut color = [0.0, 0.0, 0.0, 0.0];
 
-                    if self.scene.hit(&ray) {
+                    if self.scene.hit(&ray).is_some() {
                         color[0] = 1.0;
                         color[3] = 1.0;
                     }

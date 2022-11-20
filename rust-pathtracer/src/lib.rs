@@ -16,6 +16,8 @@ pub type Ray = [PTF3; 2];
 pub mod tracer;
 pub mod camera;
 pub mod scene;
+pub mod material;
+pub mod globals;
 
 pub mod prelude {
     pub use crate::PTF;
@@ -29,6 +31,9 @@ pub mod prelude {
 
     pub use crate::camera::Camera3D;
     pub use crate::camera::pinhole::Pinhole;
+
+    pub use crate::material::*;
+    pub use crate::globals::*;
 
     pub use crate::scene::Scene;
     pub use crate::tracer::Tracer;
