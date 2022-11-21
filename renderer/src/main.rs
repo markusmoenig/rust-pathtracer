@@ -19,13 +19,18 @@ use tao::{
     //keyboard::{Key},
 };
 
+extern crate nalgebra_glm as glm;
+
+
 fn main() -> Result<(), Error> {
 
     let width     : usize = 800;
     let height    : usize = 600;
 
+    let mut buffer = ColorBuffer::new(width, height);
+
     let scene = Box::new(AnalyticalScene::new());
-    let mut pt = Tracer::new(width, height, scene);
+    let mut pt = Tracer::new(scene);
 
     env_logger::init();
     let event_loop = EventLoop::new();
@@ -99,8 +104,8 @@ fn main() -> Result<(), Error> {
             Event::RedrawRequested(_) => {
 
                 let frame = pixels.get_frame();
-                pt.render();
-                pt.convert_to_u8(frame);
+                pt.render(&mut buffer);
+                buffer.convert_to_u8(frame);
                 //editor_lib::rust_draw(frame.as_mut_ptr(), width as u32, height as u32);
 
                 if pixels

@@ -2,8 +2,6 @@ pub mod pinhole;
 
 use crate::prelude::*;
 
-pub type Ray = [Vector3<PTF>; 2];
-
 #[allow(unused)]
 pub trait Camera3D : Sync + Send {
 

@@ -1493,6 +1493,8 @@ version = "0.1.0"
 dependencies = [
  "env_logger",
  "log",
+ "nalgebra",
+ "nalgebra-glm",
  "pixels",
  "rust-pathtracer",
  "tao",

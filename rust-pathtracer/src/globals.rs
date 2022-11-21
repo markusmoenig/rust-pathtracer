@@ -4,7 +4,6 @@ use crate::prelude::*;
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct State {
-
     pub depth               : u16,
     pub eta                 : PTF,
 
@@ -18,14 +17,14 @@ pub struct State {
 
     pub is_emitter          : bool,
 
-    pub mat                 : Material,
+    pub material            : Material,
     pub medium              : Medium,
 }
 
 impl State {
     pub fn new() -> Self {
         Self {
-            depth           : 0,
+            depth           : 4,
             eta             : 0.0,
 
             hit_dist        : -1.0,
@@ -38,8 +37,106 @@ impl State {
 
             is_emitter      : false,
 
-            mat             : Material::new(PTF3::new(1.0, 1.0, 1.0)),
+            material        : Material::new(PTF3::new(1.0, 1.0, 1.0)),
             medium          : Medium::new(),
         }
     }
+
+    /// Sets the hit distance and the hit normal
+    pub fn set_distance_and_normal(&mut self, ray: &Ray, hit_dist: PTF, normal: PTF3) {
+        self.hit_dist = hit_dist;
+        self.fhp = ray[0] + ray[1] * hit_dist;
+
+        self.normal = normal.clone();
+
+        if glm::dot(&normal, &ray[1]) <= 0.0 {
+            self.ffnormal = normal;
+        } else {
+            self.ffnormal = -normal;
+        }
+
+        let mut t = PTF3::new(0.0, 0.0, 0.0);
+        let mut b = PTF3::new(0.0, 0.0, 0.0);
+        self.onb(self.normal, &mut t, &mut b);
+        self.tangent = t;
+        self.bitangent = b;
+
+        //state.eta = dot(r.direction, state.normal) < 0.0 ? (1.0 / mat.ior) : mat.ior;
+    }
+
+    /// Calculate tangent and bitangent
+    pub fn onb(&mut self, n: PTF3, t: &mut PTF3, b: &mut PTF3) {
+        let up = if n.z.abs() < 0.999 { PTF3::new(0.0, 0.0, 1.0) } else { PTF3::new(1.0, 0.0, 0.0) };
+
+        *t = glm::normalize(&glm::cross(&up, &n));
+        *b = glm::cross(&n, &t);
+    }
+
 }
+
+// Light
+
+#[derive(PartialEq, Clone, Debug)]
+pub enum LightType {
+    Rectangular,
+    Spherical,
+    Distant,
+}
+
+#[derive(PartialEq, Clone, Debug)]
+pub struct Light {
+    pub light_type          : LightType,
+    pub position            : PTF3,
+    pub emission            : PTF3,
+    pub u                   : PTF3,
+    pub v                   : PTF3,
+    pub radius              : PTF,
+    pub area                : PTF,
+}
+
+// ScatterSampleRec
+
+#[derive(PartialEq, Clone, Debug)]
+pub struct ScatterSampleRec {
+
+    pub l                   : PTF3,
+    pub f                   : PTF3,
+    pub pdf                 : PTF,
+}
+
+impl ScatterSampleRec {
+    pub fn new() -> Self {
+        Self {
+            l               : PTF3::new(0.0, 0.0, 0.0),
+            f               : PTF3::new(0.0, 0.0, 0.0),
+            pdf             : 0.0,
+        }
+    }
+}
+
+// LightSampleRec
+
+#[derive(PartialEq, Clone, Debug)]
+pub struct LightSampleRec {
+
+    pub normal              : PTF3,
+    pub emission            : PTF3,
+    pub direction           : PTF3,
+
+    pub dist                : PTF,
+    pub pdf                 : PTF,
+}
+
+impl LightSampleRec {
+    pub fn new() -> Self {
+        Self {
+            normal          : PTF3::new(0.0, 0.0, 0.0),
+            emission        : PTF3::new(0.0, 0.0, 0.0),
+            direction       : PTF3::new(0.0, 0.0, 0.0),
+
+            dist            : 0.0,
+            pdf             : 0.0,
+        }
+    }
+}
+
