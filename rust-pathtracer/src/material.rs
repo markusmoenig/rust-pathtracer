@@ -63,19 +63,30 @@ pub struct Material {
     pub alpha_mode              : AlphaMode,
     pub alpha_cutoff            : PTF,
 
-    pub medium                  : Medium
+    pub ax                      : PTF,
+    pub ay                      : PTF,
+
+    pub medium                  : Medium,
 }
 
 impl Material {
 
     pub fn new(base_color: PTF3) -> Self {
+
+        let anisotropic = 0.0;
+        let roughness = 0.5;
+
+        let aspect = (1.0 - anisotropic * 0.9).sqrt();
+        let ax = 0.001.max(roughness / aspect);
+        let ay = 0.001.max(roughness * aspect);
+
         Self {
             base_color,
             emission            : PTF3::new(0.0, 0.0, 0.0),
 
-            anisotropic         : 0.0,
+            anisotropic,
             metallic            : 0.0,
-            roughness           : 0.5,
+            roughness,
             subsurface          : 0.0,
             specular_tint       : 0.0,
 
@@ -91,7 +102,10 @@ impl Material {
             alpha_mode          : AlphaMode::Opaque,
             alpha_cutoff        : 0.0,
 
-            medium              : Medium::new()
+            medium              : Medium::new(),
+
+            ax,
+            ay,
         }
     }
 

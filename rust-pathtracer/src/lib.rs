@@ -5,6 +5,7 @@ pub type PTF2 = glm::DVec2;
 pub type PTF3 = glm::DVec3;
 pub type PTF4 = glm::DVec4;
 const PI : PTF = std::f64::consts::PI;
+const INV_PI : PTF = 1.0 / std::f64::consts::PI;
 const TWO_PI : PTF = std::f64::consts::PI * 2.0;
 
 // pub type PTF = f32;
@@ -12,6 +13,7 @@ const TWO_PI : PTF = std::f64::consts::PI * 2.0;
 // pub type PTF3 = glm::Vec3;
 // pub type PTF4 = glm::Vec4;
 // const PI : PTF = std::f32::consts::PI;
+// const INV_PI : PTF = 1.0 / std::f32::consts::PI;
 // const TWO_PI : PTF = std::f32::consts::PI * 2.0;
 
 pub type Color = [PTF; 4];

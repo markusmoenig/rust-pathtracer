@@ -203,6 +203,21 @@ impl Tracer {
         (1.0 - v) * a + b * v
     }
 
+    fn gtr1(&self, ndoth: &PTF, a: PTF) -> PTF {
+        if a >= 1.0 {
+            return crate::INV_PI;
+        }
+        let a2 = a * a;
+        let t = 1.0 + (a2 - 1.0) * ndoth * ndoth;
+        return (a2 - 1.0) / (crate::PI * (a2).log2() * t);
+    }
+
+    fn smithg(&self, ndotv: &PTF, alphag: PTF) -> PTF {
+        let a = alphag * alphag;
+        let b = ndotv * ndotv;
+        (2.0 * ndotv) / (ndotv + (a + b - a * b).sqrt())
+    }
+
     // Disney
 
     fn luminance(&self, c: &PTF3) -> PTF {
@@ -213,6 +228,20 @@ impl Tracer {
         let m = (1.0 - u).clamp(0.0, 1.0);
         let m2 = m * m;
         m2 * m2 * m
+    }
+
+    fn gtr2aniso(&self, ndoth: &PTF, hdotx: &PTF, hdoty: &PTF, ax: &PTF, ay: &PTF) -> PTF {
+        let a = hdotx / ax;
+        let b = hdoty / ay;
+        let c = a * a + b * b + ndoth * ndoth;
+        1.0 / (crate::PI * ax * ay * c * c)
+    }
+
+    fn smithganiso(&self, ndotv: &PTF, vdotx: &PTF, vdoty: &PTF, ax: &PTF, ay: &PTF) -> PTF {
+        let a = vdotx / ax;
+        let b = vdoty / ay;
+        let c = ndotv;
+        (2.0 * ndotv) / (ndotv + (a * a + b * b + c * c).sqrt())
     }
 
     fn dielectric_fresnel(&self, cos_theta_i: PTF, eta: PTF) -> PTF {
@@ -239,6 +268,84 @@ impl Tracer {
         *sheen_col = glm::mix(&PTF3::new(1.0, 1.0, 1.0), &ctint, material.sheen_tint);
     }
 
+    fn eval_diffuse(&self, material: &Material, c_sheen: &PTF3, v: &PTF3, l: &PTF3, h: &PTF3, pdf: &mut PTF) -> PTF3 {
+        *pdf = 0.0;
+        if l.z <= 0.0 {
+            return PTF3::zeros();
+        }
+
+        // Diffuse
+        let fl = self.schlick_fresnel(l.z);
+        let fv = self.schlick_fresnel(v.z);
+        let fh = self.schlick_fresnel(glm::dot(&l, &h));
+        let fd90 = 0.5 + 2.0 * glm::dot(&l, &h) * glm::dot(&l, &h) * material.roughness;
+        let fd = self.mix_ptf(&1.0, &fd90, &fl) * self.mix_ptf(&1.0, &fd90, &fv);
+
+        // Fake Subsurface TODO: Replace with volumetric scattering
+        let fss90 = glm::dot(&l, &h) * glm::dot(&l, &h) * material.roughness;
+        let fss = self.mix_ptf(&1.0, &fss90, &fl) * self.mix_ptf(&1.0, &fss90, &fv);
+        let ss = 1.25 * (fss * (1.0 / (l.z + v.z) - 0.5) + 0.5);
+
+        // Sheen
+        let fsheen = fh * material.sheen * c_sheen;
+
+        *pdf = l.z * crate::INV_PI;
+        (1.0 - material.metallic) * (1.0 - material.spec_trans) * (crate::INV_PI * self.mix_ptf(&fd, &ss, &material.subsurface) * material.base_color + fsheen)
+    }
+
+    fn eval_spec_reflection(&self, material: &Material, eta: PTF, spec_col: &PTF3, v: &PTF3, l: &PTF3, h: &PTF3, pdf: &mut PTF) -> PTF3 {
+        *pdf = 0.0;
+        if l.z <= 0.0 {
+            return PTF3::zeros();
+        }
+
+        let fm = self.disney_fresnel(material, eta, glm::dot(&l, &h), glm::dot(&v, &h));
+        let f = glm::mix(&spec_col, &PTF3::new(1.0, 1.0, 1.0), fm);
+        let d = self.gtr2aniso(&h.z, &h.x, &h.y, &material.ax, &material.ay);
+        let g1 = self.smithganiso(&v.z.abs(), &v.x, &v.y, &material.ax, &material.ay);
+        let g2 = g1 * self.smithganiso(&l.z.abs(), &l.x, &l.y, &material.ax, &material.ay);
+
+        *pdf = g1 * d / (4.0 * v.z);
+        f * d * g2 / (4.0 * l.z * v.z)
+    }
+
+    fn eval_spec_refraction(&self, material: &Material, eta: PTF, v: &PTF3, l: &PTF3, h: &PTF3, pdf: &mut PTF) -> PTF3 {
+        *pdf = 0.0;
+        if l.z >= 0.0 {
+            return PTF3::zeros();
+        }
+
+        let f = self.dielectric_fresnel(glm::dot(&v, &h).abs(), eta);
+        let d = self.gtr2aniso(&h.z, &h.x, &h.y, &material.ax, &material.ay);
+        let g1 = self.smithganiso(&v.z.abs(), &v.x, &v.y, &material.ax, &material.ay);
+        let g2 = g1 * self.smithganiso(&l.z.abs(), &l.x, &l.y, &material.ax, &material.ay);
+        let mut denom = glm::dot(&l, &h) + glm::dot(&v, &h) * eta;
+        denom *= denom;
+        let eta2 = eta * eta;
+        let jacobian = glm::dot(&l, &h).abs() / denom;
+
+        *pdf = g1 * 0.0.max(glm::dot(&v, &h)) * d * jacobian / v.z;
+
+        glm::pow(&material.base_color, &PTF3::new(0.5, 0.5, 0.5)) * (1.0 - material.metallic) * material.spec_trans * (1.0 - f) * d * g2 * glm::dot(&v, &h).abs() * jacobian * eta2 / (l.z * v.z).abs()
+    }
+
+    fn eval_clearcoat(&self, material: &Material, v: &PTF3, l: &PTF3, h: &PTF3, pdf: &mut PTF) -> PTF3
+    {
+        *pdf = 0.0;
+        if l.z <= 0.0 {
+            return PTF3::zeros();
+        }
+
+        let fh = self.dielectric_fresnel(glm::dot(&v, &h), 1.0 / 1.5);
+        let f = self.mix_ptf(&0.04, &1.0, &fh);
+        let d = self.gtr1(&h.z, material.clearcoat_gloss);
+        let g = self.smithg(&l.z, 0.25) * self.smithg(&v.z, 0.25);
+        let jacobian = 1.0 / (4.0 * glm::dot(&v, &h));
+
+        *pdf = d * h.z * jacobian;
+        PTF3::new(0.25, 0.25, 0.25) * material.clearcoat * f * d * g / (4.0 * l.z * v.z)
+    }
+
     fn get_lobe_probabilities(&self, material: &Material, _eta: &PTF, spec_col: &PTF3, approx_fresnel: PTF, diffuse_wt: &mut PTF, spec_reflect_wt: &mut PTF,  spec_refract_wt: &mut PTF, clearcoat_wt: &mut PTF)
     {
         *diffuse_wt = self.luminance(&material.base_color) * (1.0 - material.metallic) * (1.0 - material.spec_trans);
@@ -261,7 +368,7 @@ impl Tracer {
 
     fn disney_eval(&self, state: &State, v: PTF3, n: &PTF3, l: &PTF3, bsdf_pdf: &mut PTF) -> PTF3 {
         *bsdf_pdf = 0.0;
-        let f = PTF3::zeros();
+        let mut f = PTF3::zeros();
 
         fn onb(n: &PTF3, t: &mut PTF3, b: &mut PTF3) {
             let up = if n.z.abs() < 0.999 { PTF3::new(0.0, 0.0, 1.0) } else { PTF3::new(1.0, 0.0, 0.0) };
@@ -302,8 +409,33 @@ impl Tracer {
         let fresnel = self.disney_fresnel(&state.material, state.eta, glm::dot(&l, &h), glm::dot(&v, &h));
         self.get_lobe_probabilities(&state.material, &state.eta, &spec_col, fresnel, &mut diffuse_wt, &mut spec_reflect_wt, &mut spec_refract_wt, &mut clearcoat_wt);
 
+        let mut pdf = 0.0;
 
-        f
+        // Diffuse
+        if diffuse_wt > 0.0 && l.z > 0.0 {
+            f += self.eval_diffuse(&state.material, &sheen_col, &v, &l, &h, &mut pdf);
+            *bsdf_pdf += pdf * diffuse_wt;
+        }
+
+        // Specular Reflection
+        if spec_reflect_wt > 0.0 && l.z > 0.0 && v.z > 0.0 {
+            f += self.eval_spec_reflection(&state.material, state.eta, &spec_col, &v, &l, &h, &mut pdf);
+            *bsdf_pdf += pdf * spec_reflect_wt;
+        }
+
+        // Specular Refraction
+        if spec_refract_wt > 0.0 && l.z < 0.0 {
+            f += self.eval_spec_refraction(&state.material, state.eta, &v, &l, &h, &mut pdf);
+            *bsdf_pdf += pdf * spec_refract_wt;
+        }
+
+        // Clearcoat
+        if clearcoat_wt > 0.0 && l.z > 0.0 && v.z > 0.0 {
+            f +=self.eval_clearcoat(&state.material, &v, &l, &h, &mut pdf);
+            *bsdf_pdf += pdf * clearcoat_wt;
+        }
+
+        f * l.z.abs()
     }
 
 

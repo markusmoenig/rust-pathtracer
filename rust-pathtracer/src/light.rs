@@ -16,7 +16,7 @@ impl AnalyticalLight {
             u                   : PTF3::zeros(),
             v                   : PTF3::zeros(),
             radius              : radius,
-            area                : 10.0,
+            area                : 4.0 * crate::PI * radius * radius
         };
 
         Self {
