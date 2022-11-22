@@ -12,8 +12,6 @@ pub struct State {
     pub fhp                 : PTF3,
     pub normal              : PTF3,
     pub ffnormal            : PTF3,
-    pub tangent             : PTF3,
-    pub bitangent           : PTF3,
 
     pub is_emitter          : bool,
 
@@ -32,27 +30,11 @@ impl State {
             fhp             : PTF3::new(0.0, 0.0, 0.0),
             normal          : PTF3::new(0.0, 0.0, 0.0),
             ffnormal        : PTF3::new(0.0, 0.0, 0.0),
-            tangent         : PTF3::new(0.0, 0.0, 0.0),
-            bitangent       : PTF3::new(0.0, 0.0, 0.0),
 
             is_emitter      : false,
 
             material        : Material::new(PTF3::new(1.0, 1.0, 1.0)),
             medium          : Medium::new(),
-        }
-    }
-
-    /// Sets the hit distance and the hit normal
-    pub fn set_distance_and_normal(&mut self, ray: &Ray, hit_dist: PTF, normal: PTF3) {
-        self.hit_dist = hit_dist;
-        self.fhp = ray[0] + ray[1] * hit_dist;
-
-        self.normal = normal.clone();
-
-        if glm::dot(&normal, &ray[1]) <= 0.0 {
-            self.ffnormal = normal;
-        } else {
-            self.ffnormal = -normal;
         }
     }
 
@@ -66,11 +48,15 @@ impl State {
 
     /// State post-processing, called by the tracer after calling Scene::closest_hit()
     pub fn finalize(&mut self, ray: &Ray) {
-        let mut t = PTF3::new(0.0, 0.0, 0.0);
-        let mut b = PTF3::new(0.0, 0.0, 0.0);
-        self.onb(self.normal, &mut t, &mut b);
-        self.tangent = t;
-        self.bitangent = b;
+
+        self.fhp = ray[0] + ray[1] * self.hit_dist;
+
+        if glm::dot(&self.normal, &ray[1]) <= 0.0 {
+            self.ffnormal = self.normal;
+        } else {
+            self.ffnormal = -self.normal;
+        }
+
         self.material.finalize();
         self.eta = if glm::dot(&ray[1], &self.normal) < 0.0 { 1.0 / self.material.ior } else { self.material.ior };
     }

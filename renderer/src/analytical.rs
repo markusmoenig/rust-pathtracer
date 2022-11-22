@@ -3,6 +3,7 @@ pub use nalgebra::*;
 
 pub struct AnalyticalScene {
     lights              : Vec<AnalyticalLight>,
+    pinhole             : Box<dyn Camera3D>,
 }
 
 // The Scene
@@ -15,13 +16,18 @@ impl Scene for AnalyticalScene {
 
         Self {
             lights,
+            pinhole     : Box::new(Pinhole::new()),
         }
+    }
+
+    fn camera(&self) -> &Box<dyn Camera3D> {
+        &self.pinhole
     }
 
     fn background(&self, ray: &Ray) -> PTF3 {
         // Taken from https://raytracing.github.io/books/RayTracingInOneWeekend.html, a source of great knowledge
         let t = 0.5 * (ray[1].y + 1.0);
-        (1.0 - t) * PTF3::new(1.0, 1.0, 1.0) + t * PTF3::new(0.5, 0.7, 1.0)
+        self.to_linear((1.0 - t) * PTF3::new(1.0, 1.0, 1.0) + t * PTF3::new(0.5, 0.7, 1.0))
     }
 
 
@@ -31,23 +37,26 @@ impl Scene for AnalyticalScene {
         let mut dist = PTF::MAX;
         let mut hit = false;
 
-        let center = PTF3::new(0.0, 0.0, 0.0);
+        let mut center = PTF3::new(-1.1, 0.0, 0.0);
 
         if let Some(d) = self.sphere(ray, center, 1.0) {
 
             let hp = ray[0] + ray[1] * d;
             let normal = glm::normalize(&(center - hp));
 
-            state.set_distance_and_normal(ray, d, normal);
+            state.hit_dist = d;
+            state.normal = normal;
 
-            state.material.base_color = PTF3::new(1.0,0.4, 0.0);
-            state.material.clearcoat = 1.0;
+            // state.material.base_color = PTF3::new(1.0,0.4, 0.0);
+            // state.material.clearcoat = 1.0;
+            // state.material.clearcoat_gloss = 1.0;
+            //state.material.roughness = 1.0;
 
-            // state.material.base_color = PTF3::new(0.9,0.9, 0.9);
-            // state.material.roughness = 0.0001;
-            // state.material.metallic = 1.0;
+            state.material.base_color = PTF3::new(212.0 / 255.0,175.0 / 255.0, 55.0 / 255.0);
+            state.material.roughness = 0.0;
+            state.material.metallic = 0.0;
 
-            // state.material.base_color = PTF3::new(2.0,2.0, 2.0);
+            // state.material.base_color = PTF3::new(1.0,1.0, 1.0);
             // state.material.spec_trans = 1.0;
             // state.material.roughness = 0.0;
             // state.material.ior = 1.45;
@@ -56,11 +65,44 @@ impl Scene for AnalyticalScene {
             dist = d;
         }
 
+        center = PTF3::new(1.1, 0.0, 0.0);
+
+        if let Some(d) = self.sphere(ray, center, 1.0) {
+
+            if d < dist {
+
+                let hp = ray[0] + ray[1] * d;
+                let normal = glm::normalize(&(center - hp));
+
+                state.hit_dist = d;
+                state.normal = normal;
+
+                state.material.base_color = PTF3::new(1.0,0.4, 0.0);
+                state.material.clearcoat = 1.0;
+                state.material.clearcoat_gloss = 1.0;
+                // state.material.roughness = 1.0;
+
+                // state.material.base_color = PTF3::new(0.9,0.9, 0.9);
+                // state.material.roughness = 0.2;
+                // state.material.metallic = 1.0;
+
+                // state.material.base_color = PTF3::new(1.0,1.0, 1.0);
+                // state.material.spec_trans = 1.0;
+                // state.material.roughness = 0.1;
+                // state.material.ior = 1.45;
+
+                hit = true;
+                dist = d;
+            }
+        }
+
         if let Some(d) = self.plane(ray) {
 
             if d < dist {
-                state.set_distance_and_normal(ray, d, PTF3::new(0.0, 1.0, 0.0));
-                state.material.roughness = 0.1;
+                state.hit_dist = d;
+                state.normal = PTF3::new(0.0, 1.0, 0.0);
+
+                state.material.roughness = 0.0;
 
                 hit = true;
             }
@@ -72,7 +114,11 @@ impl Scene for AnalyticalScene {
     /// Any hit
     fn any_hit(&self, ray: &Ray, _max_dist: PTF) -> bool {
 
-        if let Some(_d) = self.sphere(ray, PTF3::new(0.0, 0.0, 0.0), 1.0) {
+        if let Some(_d) = self.sphere(ray, PTF3::new(-1.1, 0.0, 0.0), 1.0) {
+            return true;
+        }
+
+        if let Some(_d) = self.sphere(ray, PTF3::new(1.1, 0.0, 0.0), 1.0) {
             return true;
         }
 

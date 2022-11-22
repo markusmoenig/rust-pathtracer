@@ -28,7 +28,8 @@ impl ColorBuffer {
         for y in 0..self.height {
             for x in 0..self.width {
                 let o = x * 4 + y * self.width * 4;
-                let c = [(self.pixels[o] * 255.0) as u8, (self.pixels[o+1] * 255.0) as u8,  (self.pixels[o+2] * 255.0) as u8,  (self.pixels[o+3] * 255.0) as u8];
+                let c = [(self.pixels[o].powf(0.4545) * 255.0) as u8, (self.pixels[o+1].powf(0.4545) * 255.0) as u8, (self.pixels[o+2].powf(0.4545) * 255.0) as u8, (self.pixels[o+3] * 255.0) as u8];
+                // let c = [(self.pixels[o]* 255.0) as u8, (self.pixels[o+1] * 255.0) as u8, (self.pixels[o+2]* 255.0) as u8, (self.pixels[o+3] * 255.0) as u8];
                 frame[o..o + 4].copy_from_slice(&c);
             }
         }

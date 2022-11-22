@@ -5,7 +5,6 @@ use crate::prelude::*;
 pub struct Tracer {
     eps                 : PTF,
 
-    camera              : Box<dyn Camera3D>,
     scene               : Box<dyn Scene>,
 }
 
@@ -13,9 +12,8 @@ impl Tracer {
 
     pub fn new(scene: Box<dyn Scene>) -> Self {
         Self {
-            eps             : 0.0001,
 
-            camera      : Box::new(Pinhole::new()),
+            eps         : 0.0001,
             scene,
         }
     }
@@ -46,7 +44,7 @@ impl Tracer {
                     let mut rng = thread_rng();
                     let cam_offset = PTF2::new(rng.gen(), rng.gen());
                     let coord = Vector2::new(xx, 1.0 - yy);
-                    let mut ray = self.camera.gen_ray(coord, 80.0, cam_offset, width as PTF, height);
+                    let mut ray = self.scene.camera().gen_ray(coord, 80.0, cam_offset, width as PTF, height);
 
                     // -
 
@@ -75,9 +73,9 @@ impl Tracer {
                         radiance += self.direct_light(&ray, &state, true, &mut rng).component_mul(&throughput);
 
                         // Sample BSDF for color and outgoing direction
-                        scatter_sample.f = self.disney_sample(&state, &-ray[1], &state.ffnormal, &mut scatter_sample.l, &mut scatter_sample.pdf, &mut rng);
+                        scatter_sample.f = self.disney_sample(&state, -ray[1], &state.ffnormal, &mut scatter_sample.l, &mut scatter_sample.pdf, &mut rng);
                         if scatter_sample.pdf > 0.0 {
-                           throughput = throughput.component_mul(&scatter_sample.f) / scatter_sample.pdf;
+                           throughput = throughput.component_mul(&(scatter_sample.f / scatter_sample.pdf));
                         } else {
                            break;
                         }
@@ -149,7 +147,7 @@ impl Tracer {
                     }
 
                     if scatter_sample.pdf > 0.0 {
-                        ld += mis_weight * li.component_mul(&scatter_sample.f) / light_sample.pdf;
+                        ld += mis_weight * li.component_mul(&(scatter_sample.f / light_sample.pdf));
                     }
                 }
             }
@@ -215,7 +213,7 @@ impl Tracer {
     }
 
     #[inline(always)]
-    fn mix_ptf(&self, a: &PTF, b: &PTF, v: &PTF) -> PTF {
+    fn mix_ptf(&self, a: &PTF, b: &PTF, v: PTF) -> PTF {
         (1.0 - v) * a + b * v
     }
 
@@ -228,7 +226,7 @@ impl Tracer {
         return (a2 - 1.0) / (crate::PI * (a2).log2() * t);
     }
 
-    fn sample_gtr1(&self, rgh: PTF, r1: PTF, r2: PTF) -> PTF3 {
+    fn sample_gtr1(&self, rgh: PTF, r1: PTF, _r2: PTF) -> PTF3 {
         let a = 0.001.max(rgh);
         let a2 = a * a;
 
@@ -257,7 +255,7 @@ impl Tracer {
         let s = 0.5 * (1.0 + vh.z);
         t2 = (1.0 - s) * (1.0 - t1 * t1).sqrt() + s * t2;
 
-        let nh = t1 * t_1 + t2 * t_2 + 0.0.max(1.0 - t1 * t1 - t2 * t2).sqrt() * vh;
+        let nh = t1 * t_1 + t2 * t_2 + (0.0.max(1.0 - t1 * t1 - t2 * t2)).sqrt() * vh;
 
         glm::normalize(&PTF3::new(ax * nh.x, ay * nh.y, 0.0.max(nh.z)))
     }
@@ -340,18 +338,18 @@ impl Tracer {
         let fv = self.schlick_fresnel(v.z);
         let fh = self.schlick_fresnel(glm::dot(&l, &h));
         let fd90 = 0.5 + 2.0 * glm::dot(&l, &h) * glm::dot(&l, &h) * material.roughness;
-        let fd = self.mix_ptf(&1.0, &fd90, &fl) * self.mix_ptf(&1.0, &fd90, &fv);
+        let fd = self.mix_ptf(&1.0, &fd90, fl) * self.mix_ptf(&1.0, &fd90, fv);
 
         // Fake Subsurface TODO: Replace with volumetric scattering
         let fss90 = glm::dot(&l, &h) * glm::dot(&l, &h) * material.roughness;
-        let fss = self.mix_ptf(&1.0, &fss90, &fl) * self.mix_ptf(&1.0, &fss90, &fv);
+        let fss = self.mix_ptf(&1.0, &fss90, fl) * self.mix_ptf(&1.0, &fss90, fv);
         let ss = 1.25 * (fss * (1.0 / (l.z + v.z) - 0.5) + 0.5);
 
         // Sheen
         let fsheen = fh * material.sheen * c_sheen;
 
         *pdf = l.z * crate::INV_PI;
-        (1.0 - material.metallic) * (1.0 - material.spec_trans) * (crate::INV_PI * self.mix_ptf(&fd, &ss, &material.subsurface) * material.base_color + fsheen)
+        (1.0 - material.metallic) * (1.0 - material.spec_trans) * (crate::INV_PI * self.mix_ptf(&fd, &ss, material.subsurface) * material.base_color + fsheen)
     }
 
     fn eval_spec_reflection(&self, material: &Material, eta: PTF, spec_col: &PTF3, v: &PTF3, l: &PTF3, h: &PTF3, pdf: &mut PTF) -> PTF3 {
@@ -398,8 +396,8 @@ impl Tracer {
         }
 
         let fh = self.dielectric_fresnel(glm::dot(&v, &h), 1.0 / 1.5);
-        let f = self.mix_ptf(&0.04, &1.0, &fh);
-        let d = self.gtr1(&h.z, material.clearcoat_gloss);
+        let f = self.mix_ptf(&0.04, &1.0, fh);
+        let d = self.gtr1(&h.z, material.clearcoat_roughness);
         let g = self.smithg(&l.z, 0.25) * self.smithg(&v.z, 0.25);
         let jacobian = 1.0 / (4.0 * glm::dot(&v, &h));
 
@@ -424,13 +422,13 @@ impl Tracer {
     fn disney_fresnel(&self, material: &Material, eta: PTF, ldot_h: PTF, vdot_h: PTF) -> PTF {
         let metallic_fresnel = self.schlick_fresnel(ldot_h);
         let  dielectric_fresnel = self.dielectric_fresnel(vdot_h.abs(), eta);
-        self.mix_ptf(&dielectric_fresnel, &metallic_fresnel, &material.metallic)
+        self.mix_ptf(&dielectric_fresnel, &metallic_fresnel, material.metallic)
     }
 
-    fn disney_sample(&self, state: &State, v: &PTF3, n: &PTF3, l: &mut PTF3, pdf: &mut PTF, rng: &mut ThreadRng) -> PTF3 {
+    fn disney_sample(&self, state: &State, mut v: PTF3, n: &PTF3, l: &mut PTF3, pdf: &mut PTF, rng: &mut ThreadRng) -> PTF3 {
 
         *pdf = 0.0;
-        let mut f = PTF3::zeros();
+        let f;
 
         let mut r1 : PTF = rng.gen();
         let r2 : PTF = rng.gen();
@@ -438,8 +436,8 @@ impl Tracer {
         fn onb(n: &PTF3, t: &mut PTF3, b: &mut PTF3) {
             let up = if n.z.abs() < 0.999 { PTF3::new(0.0, 0.0, 1.0) } else { PTF3::new(1.0, 0.0, 0.0) };
 
-            *t = glm::normalize(&glm::cross(&up, &n));
-            *b = glm::cross(&n, &t);
+            *t = glm::normalize(&glm::cross(&up, n));
+            *b = glm::cross(n, t);
         }
 
         fn to_local(x: &PTF3, y: &PTF3, z: &PTF3, v: &PTF3) -> PTF3 {
@@ -459,15 +457,15 @@ impl Tracer {
             if k < 0.0 {
                 PTF3::zeros()
             } else {
-                    eta * i - (eta * glm::dot(&n, &i) + k.sqrt()) * n
+                eta * i - (eta * glm::dot(&n, &i) + k.sqrt()) * n
             }
         }
 
         let mut t = PTF3::zeros();
         let mut b = PTF3::zeros();
 
-        onb(n, &mut t, &mut b);
-        let v = to_local(&t, &b, n, &v); // NDotL = L.z; NDotV = V.z; NDotH = H.z
+        onb(&n, &mut t, &mut b);
+        v = to_local(&t, &b, n, &v); // NDotL = L.z; NDotV = V.z; NDotH = H.z
 
         // Specular and sheen color
         let mut spec_col = PTF3::zeros();
@@ -492,13 +490,13 @@ impl Tracer {
             *l = self.cosine_sample_hemisphere(r1, r2);
 
             let h = glm::normalize(&(*l + v));
-            f += self.eval_diffuse(&state.material, &sheen_col, &v, &l, &h, pdf);
+            f = self.eval_diffuse(&state.material, &sheen_col, &v, &l, &h, pdf);
             *pdf *= diffuse_wt;
         } else
         if r1 < cdf[1] {// Clearcoat Lobe
             r1 = (r1 - cdf[0]) / (cdf[1] - cdf[0]);
 
-            let mut h = self.sample_gtr1(state.material.clearcoat_gloss, r1, r2);
+            let mut h = self.sample_gtr1(state.material.clearcoat_roughness, r1, r2);
 
             if h.z < 0.0 {
                 h = -h;
@@ -540,7 +538,6 @@ impl Tracer {
         *l = to_world(&t, &b, &n, &l);
         f * glm::dot(n, l).abs()
     }
-
 
     fn disney_eval(&self, state: &State, v: PTF3, n: &PTF3, l: &PTF3, bsdf_pdf: &mut PTF) -> PTF3 {
         *bsdf_pdf = 0.0;

@@ -55,6 +55,7 @@ pub struct Material {
     pub sheen_tint              : PTF,
     pub clearcoat               : PTF,
     pub clearcoat_gloss         : PTF,
+    pub clearcoat_roughness     : PTF,
 
     pub spec_trans              : PTF,
     pub ior                     : PTF,
@@ -73,13 +74,6 @@ impl Material {
 
     pub fn new(base_color: PTF3) -> Self {
 
-        let anisotropic = 0.0;
-        let roughness = 0.5;
-
-        let aspect = (1.0 - anisotropic * 0.9).sqrt();
-        let ax = 0.001.max(roughness / aspect);
-        let ay = 0.001.max(roughness * aspect);
-
         Self {
             base_color,
             emission            : PTF3::new(0.0, 0.0, 0.0),
@@ -95,8 +89,9 @@ impl Material {
 
             clearcoat           : 0.0,
             clearcoat_gloss     : 0.0,
+            clearcoat_roughness : 0.0,
             spec_trans          : 0.0,
-            ior                 : 1.5,
+            ior                 : 1.45,
 
             opacity             : 1.0,
             alpha_mode          : AlphaMode::Opaque,
@@ -111,9 +106,19 @@ impl Material {
 
     /// Material post-processing, called by the tracer after calling Scene::closest_hit()
     pub fn finalize(&mut self) {
+
+        self.roughness = self.roughness.max(0.001);
+
+        fn mix_ptf(a: &PTF, b: &PTF, v: PTF) -> PTF {
+            (1.0 - v) * a + b * v
+        }
+
+        self.clearcoat_roughness = mix_ptf(&0.1, &0.001, self.clearcoat_gloss); // Remapping from gloss to roughness
+        self.medium.anisotropy = self.medium.anisotropy.clamp(-0.9, 0.9);
+
         let aspect = (1.0 - self.anisotropic * 0.9).sqrt();
-        self.ax = 0.001.max(self.roughness / aspect);
-        self.ay = 0.001.max(self.roughness * aspect);
+        self.ax = (self.roughness / aspect).max(0.001);
+        self.ay = (self.roughness * aspect).max(0.001);
     }
 
 }
