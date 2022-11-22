@@ -58,6 +58,7 @@ impl Tracer {
 
                     for _i in 0..state.depth {
 
+                        state.material = Material::new(PTF3::new(0.0, 0.0, 0.0));
                         let hit = self.scene.closest_hit(&ray, &mut state, &mut light_sample);
 
                         if !hit {

@@ -21,6 +21,15 @@ use tao::{
 
 extern crate nalgebra_glm as glm;
 
+/// Gets the current time in milliseconds
+#[allow(dead_code)]
+fn get_time() -> u128 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let stop = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards");
+        stop.as_millis()
+}
 
 fn main() -> Result<(), Error> {
 
@@ -104,9 +113,13 @@ fn main() -> Result<(), Error> {
             Event::RedrawRequested(_) => {
 
                 let frame = pixels.get_frame();
+
+                //let start = get_time();
                 pt.render(&mut buffer);
+                //let stop = get_time();
+                //println!("tick time {:?}", stop - start);
+
                 buffer.convert_to_u8(frame);
-                //editor_lib::rust_draw(frame.as_mut_ptr(), width as u32, height as u32);
 
                 if pixels
                     .render()

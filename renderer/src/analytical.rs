@@ -12,7 +12,7 @@ impl Scene for AnalyticalScene {
 
     fn new() -> Self {
 
-        let lights = vec![AnalyticalLight::spherical(PTF3::new(3.0, 2.0, 2.0), 1.5, PTF3::new(1.0, 1.0, 1.0))];
+        let lights = vec![AnalyticalLight::spherical(PTF3::new(3.0, 2.0, 2.0), 1.0, PTF3::new(3.0, 3.0, 3.0))];
 
         Self {
             lights,
@@ -27,7 +27,7 @@ impl Scene for AnalyticalScene {
     fn background(&self, ray: &Ray) -> PTF3 {
         // Taken from https://raytracing.github.io/books/RayTracingInOneWeekend.html, a source of great knowledge
         let t = 0.5 * (ray[1].y + 1.0);
-        self.to_linear((1.0 - t) * PTF3::new(1.0, 1.0, 1.0) + t * PTF3::new(0.5, 0.7, 1.0))
+        self.to_linear((1.0 - t) * PTF3::new(1.0, 1.0, 1.0) + t * PTF3::new(0.5, 0.7, 1.0)) * 0.1
     }
 
 
@@ -52,13 +52,13 @@ impl Scene for AnalyticalScene {
             // state.material.clearcoat_gloss = 1.0;
             //state.material.roughness = 1.0;
 
-            state.material.base_color = PTF3::new(212.0 / 255.0,175.0 / 255.0, 55.0 / 255.0);
-            state.material.roughness = 0.0;
-            state.material.metallic = 0.0;
+            state.material.base_color = PTF3::new(5.0, 5.0, 5.0);//PTF3::new(0.815, 0.418501512, 0.00180012);
+            state.material.roughness = 0.05;
+            state.material.metallic = 1.0;
 
             // state.material.base_color = PTF3::new(1.0,1.0, 1.0);
             // state.material.spec_trans = 1.0;
-            // state.material.roughness = 0.0;
+            // state.material.roughness = 0.01;
             // state.material.ior = 1.45;
 
             hit = true;
@@ -77,10 +77,10 @@ impl Scene for AnalyticalScene {
                 state.hit_dist = d;
                 state.normal = normal;
 
-                state.material.base_color = PTF3::new(1.0,0.4, 0.0);
+                state.material.base_color = PTF3::new(1.0,0.186, 0.0);
                 state.material.clearcoat = 1.0;
                 state.material.clearcoat_gloss = 1.0;
-                // state.material.roughness = 1.0;
+                state.material.roughness = 0.6;
 
                 // state.material.base_color = PTF3::new(0.9,0.9, 0.9);
                 // state.material.roughness = 0.2;
@@ -88,7 +88,7 @@ impl Scene for AnalyticalScene {
 
                 // state.material.base_color = PTF3::new(1.0,1.0, 1.0);
                 // state.material.spec_trans = 1.0;
-                // state.material.roughness = 0.1;
+                // state.material.roughness = 0.01;
                 // state.material.ior = 1.45;
 
                 hit = true;
@@ -102,7 +102,16 @@ impl Scene for AnalyticalScene {
                 state.hit_dist = d;
                 state.normal = PTF3::new(0.0, 1.0, 0.0);
 
-                state.material.roughness = 0.0;
+                fn checker(x: PTF, y: PTF) -> PTF {
+                    let x1 = x.floor() % 2.0;
+                    let y1 = y.floor() % 2.0;
+                    if (x1 + y1) % 2.0 < 1.0 { 0.25 } else { 0.1 }
+                }
+
+                let c = checker(ray[1].x / ray[1].y * 0.5 + 100.0, ray[1].z / ray[1].y * 0.5 + 100.0);
+
+                state.material.base_color = PTF3::new(c, c, c);
+                state.material.roughness = 1.0;
 
                 hit = true;
             }

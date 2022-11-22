@@ -91,7 +91,7 @@ impl Material {
             clearcoat_gloss     : 0.0,
             clearcoat_roughness : 0.0,
             spec_trans          : 0.0,
-            ior                 : 1.45,
+            ior                 : 1.5,
 
             opacity             : 1.0,
             alpha_mode          : AlphaMode::Opaque,
@@ -107,7 +107,7 @@ impl Material {
     /// Material post-processing, called by the tracer after calling Scene::closest_hit()
     pub fn finalize(&mut self) {
 
-        self.roughness = self.roughness.max(0.001);
+        self.roughness = self.roughness.max(0.01);
 
         fn mix_ptf(a: &PTF, b: &PTF, v: PTF) -> PTF {
             (1.0 - v) * a + b * v
