@@ -84,9 +84,9 @@ impl Material {
             base_color,
             emission            : PTF3::new(0.0, 0.0, 0.0),
 
-            anisotropic,
+            anisotropic         : 0.0,
             metallic            : 0.0,
-            roughness,
+            roughness           : 0.5,
             subsurface          : 0.0,
             specular_tint       : 0.0,
 
@@ -104,9 +104,16 @@ impl Material {
 
             medium              : Medium::new(),
 
-            ax,
-            ay,
+            ax                  : 0.0,
+            ay                  : 0.0
         }
+    }
+
+    /// Material post-processing, called by the tracer after calling Scene::closest_hit()
+    pub fn finalize(&mut self) {
+        let aspect = (1.0 - self.anisotropic * 0.9).sqrt();
+        self.ax = 0.001.max(self.roughness / aspect);
+        self.ay = 0.001.max(self.roughness * aspect);
     }
 
 }

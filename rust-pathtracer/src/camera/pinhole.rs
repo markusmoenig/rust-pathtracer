@@ -10,7 +10,7 @@ impl Camera3D for Pinhole {
 
     fn new() -> Self {
 
-        let origin = PTF3::new(0.0, 0.0, 5.0);
+        let origin = PTF3::new(0.0, 0.0, 3.0);
         let center = PTF3::new(0.0, 0.0, 0.0);
 
         Self {

@@ -18,29 +18,66 @@ impl Scene for AnalyticalScene {
         }
     }
 
+    fn background(&self, ray: &Ray) -> PTF3 {
+        // Taken from https://raytracing.github.io/books/RayTracingInOneWeekend.html, a source of great knowledge
+        let t = 0.5 * (ray[1].y + 1.0);
+        (1.0 - t) * PTF3::new(1.0, 1.0, 1.0) + t * PTF3::new(0.5, 0.7, 1.0)
+    }
+
+
     /// The closest hit, includes light sources.
     fn closest_hit(&self, ray: &Ray, state: &mut State, light: &mut LightSampleRec) -> bool {
 
+        let mut dist = PTF::MAX;
+        let mut hit = false;
+
         let center = PTF3::new(0.0, 0.0, 0.0);
 
-        if let Some(dist) = self.sphere(ray, PTF3::new(0.0, 0.0, 0.0), 1.0) {
+        if let Some(d) = self.sphere(ray, center, 1.0) {
 
-            let hp = ray[0] + ray[1] * dist;
+            let hp = ray[0] + ray[1] * d;
             let normal = glm::normalize(&(center - hp));
 
-            state.set_distance_and_normal(ray, dist, normal);
+            state.set_distance_and_normal(ray, d, normal);
 
-            return true;
+            state.material.base_color = PTF3::new(1.0,0.4, 0.0);
+            state.material.clearcoat = 1.0;
+
+            // state.material.base_color = PTF3::new(0.9,0.9, 0.9);
+            // state.material.roughness = 0.0001;
+            // state.material.metallic = 1.0;
+
+            // state.material.base_color = PTF3::new(2.0,2.0, 2.0);
+            // state.material.spec_trans = 1.0;
+            // state.material.roughness = 0.0;
+            // state.material.ior = 1.45;
+
+            hit = true;
+            dist = d;
         }
 
-        false
+        if let Some(d) = self.plane(ray) {
+
+            if d < dist {
+                state.set_distance_and_normal(ray, d, PTF3::new(0.0, 1.0, 0.0));
+                state.material.roughness = 0.1;
+
+                hit = true;
+            }
+        }
+
+        hit
     }
 
     /// Any hit
-    fn any_hit(&self, ray: &Ray, max_dist: PTF) -> bool {
+    fn any_hit(&self, ray: &Ray, _max_dist: PTF) -> bool {
 
-        if let Some(dist) = self.sphere(ray, PTF3::new(0.0, 0.0, 0.0), 1.0) {
+        if let Some(_d) = self.sphere(ray, PTF3::new(0.0, 0.0, 0.0), 1.0) {
             return true;
+        }
+
+        if let Some(_d) = self.plane(ray) {
+           return true;
         }
 
         false
@@ -87,10 +124,26 @@ impl AnalyticalIntersections for AnalyticalScene {
 
         Some(t0)
    }
+
+    // Ray plane intersection
+    fn plane(&self, ray: &Ray) -> Option<PTF> {
+        let normal = PTF3::new(0.0, 1.0, 0.0);
+        let denom = glm::dot(&normal, &ray[1]);
+
+        if denom.abs() > 0.0001 {
+            let t = glm::dot(&(PTF3::new(0.0, -1.0, 0.0) - ray[0]), &normal) / denom;
+            if t >= 0.0 {
+                return Some(t);
+            }
+        }
+        None
+    }
 }
 
 #[allow(unused)]
 pub trait AnalyticalIntersections : Sync + Send {
 
     fn sphere(&self, ray: &Ray, center: PTF3, radius: PTF) -> Option<PTF>;
+    fn plane(&self, ray: &Ray) -> Option<PTF>;
+
 }

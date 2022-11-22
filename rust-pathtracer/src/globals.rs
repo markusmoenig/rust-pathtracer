@@ -54,14 +54,6 @@ impl State {
         } else {
             self.ffnormal = -normal;
         }
-
-        let mut t = PTF3::new(0.0, 0.0, 0.0);
-        let mut b = PTF3::new(0.0, 0.0, 0.0);
-        self.onb(self.normal, &mut t, &mut b);
-        self.tangent = t;
-        self.bitangent = b;
-
-        //state.eta = dot(r.direction, state.normal) < 0.0 ? (1.0 / mat.ior) : mat.ior;
     }
 
     /// Calculate tangent and bitangent
@@ -70,6 +62,17 @@ impl State {
 
         *t = glm::normalize(&glm::cross(&up, &n));
         *b = glm::cross(&n, &t);
+    }
+
+    /// State post-processing, called by the tracer after calling Scene::closest_hit()
+    pub fn finalize(&mut self, ray: &Ray) {
+        let mut t = PTF3::new(0.0, 0.0, 0.0);
+        let mut b = PTF3::new(0.0, 0.0, 0.0);
+        self.onb(self.normal, &mut t, &mut b);
+        self.tangent = t;
+        self.bitangent = b;
+        self.material.finalize();
+        self.eta = if glm::dot(&ray[1], &self.normal) < 0.0 { 1.0 / self.material.ior } else { self.material.ior };
     }
 
 }

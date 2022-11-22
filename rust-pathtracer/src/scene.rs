@@ -5,6 +5,8 @@ pub trait Scene : Sync + Send {
 
     fn new() -> Self where Self: Sized;
 
+    fn background(&self, ray: &Ray) -> PTF3;
+
     fn closest_hit(&self, ray: &Ray, state: &mut State, light: &mut LightSampleRec) -> bool;
 
     fn any_hit(&self, ray: &Ray, max_dist: PTF) -> bool;

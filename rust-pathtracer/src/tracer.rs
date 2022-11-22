@@ -46,7 +46,7 @@ impl Tracer {
                     let mut rng = thread_rng();
                     let cam_offset = PTF2::new(rng.gen(), rng.gen());
                     let coord = Vector2::new(xx, 1.0 - yy);
-                    let ray = self.camera.gen_ray(coord, 80.0, cam_offset, width as PTF, height);
+                    let mut ray = self.camera.gen_ray(coord, 80.0, cam_offset, width as PTF, height);
 
                     // -
 
@@ -63,12 +63,28 @@ impl Tracer {
                         let hit = self.scene.closest_hit(&ray, &mut state, &mut light_sample);
 
                         if !hit {
+                            radiance += self.scene.background(&ray).component_mul(&throughput);
                             break;
                         }
+
+                        // State and material post-processing
+                        state.finalize(&ray);
 
                         radiance += state.material.emission.component_mul(&throughput);
 
                         radiance += self.direct_light(&ray, &state, true, &mut rng).component_mul(&throughput);
+
+                        // Sample BSDF for color and outgoing direction
+                        scatter_sample.f = self.disney_sample(&state, &-ray[1], &state.ffnormal, &mut scatter_sample.l, &mut scatter_sample.pdf, &mut rng);
+                        if scatter_sample.pdf > 0.0 {
+                           throughput = throughput.component_mul(&scatter_sample.f) / scatter_sample.pdf;
+                        } else {
+                           break;
+                        }
+
+                        // Move ray origin to hit point and set direction for next bounce
+                        ray[1] = scatter_sample.l;
+                        ray[0] = state.fhp + ray[1] * self.eps;
 
                     }
 
@@ -93,10 +109,10 @@ impl Tracer {
     }
 
     /// Sample direct lights
-    fn direct_light(&self, ray: &Ray, state: &State, is_surface: bool, rng: &mut ThreadRng) -> PTF3 {
+    fn direct_light(&self, ray: &Ray, state: &State, _is_surface: bool, rng: &mut ThreadRng) -> PTF3 {
 
         let mut ld = PTF3::new(0.0, 0.0, 0.0);
-        let mut li;
+        let li;
 
         let scatter_pos = state.fhp + state.ffnormal * self.eps;
         let mut scatter_sample = ScatterSampleRec::new();
@@ -212,6 +228,40 @@ impl Tracer {
         return (a2 - 1.0) / (crate::PI * (a2).log2() * t);
     }
 
+    fn sample_gtr1(&self, rgh: PTF, r1: PTF, r2: PTF) -> PTF3 {
+        let a = 0.001.max(rgh);
+        let a2 = a * a;
+
+        let phi = r1 * crate::TWO_PI;
+
+        let cos_theta = ((1.0 - a2.powf(1.0 - r1)) / (1.0 - a2)).sqrt();
+        let sin_theta = (1.0 - (cos_theta * cos_theta)).sqrt().clamp(0.0, 1.0);
+        let sin_phi = phi.sin();
+        let cos_phi = phi.cos();
+
+        PTF3::new(sin_theta * cos_phi, sin_theta * sin_phi, cos_theta)
+    }
+
+    fn sample_ggxvndf(&self, v: &PTF3, ax: PTF, ay: PTF, r1: PTF, r2: PTF) -> PTF3
+    {
+        let vh = glm::normalize(&PTF3::new(ax * v.x, ay * v.y, v.z));
+
+        let lensq = vh.x * vh.x + vh.y * vh.y;
+        let t_1 = if lensq > 0.0 { PTF3::new(-vh.y, vh.x, 0.0) * (1.0 / lensq.sqrt()) } else { PTF3::new(1.0, 0.0, 0.0) };
+        let t_2 = glm::cross(&vh, &t_1);
+
+        let r = r1.sqrt();
+        let phi = 2.0 * crate::PI * r2;
+        let t1 = r * phi.cos();
+        let mut t2 = r * phi.sin();
+        let s = 0.5 * (1.0 + vh.z);
+        t2 = (1.0 - s) * (1.0 - t1 * t1).sqrt() + s * t2;
+
+        let nh = t1 * t_1 + t2 * t_2 + 0.0.max(1.0 - t1 * t1 - t2 * t2).sqrt() * vh;
+
+        glm::normalize(&PTF3::new(ax * nh.x, ay * nh.y, 0.0.max(nh.z)))
+    }
+
     fn smithg(&self, ndotv: &PTF, alphag: PTF) -> PTF {
         let a = alphag * alphag;
         let b = ndotv * ndotv;
@@ -258,6 +308,17 @@ impl Tracer {
         let rp = (eta * cos_theta_i - cos_theta_t) / (eta * cos_theta_i + cos_theta_t);
 
         0.5 * (rs * rs + rp * rp)
+    }
+
+    fn cosine_sample_hemisphere(&self, r1: PTF, r2: PTF) -> PTF3
+    {
+        let mut dir = PTF3::zeros();
+        let r = r1.sqrt();
+        let phi = crate::TWO_PI * r2;
+        dir.x = r * phi.cos();
+        dir.y = r * phi.sin();
+        dir.z = 0.0.max(1.0 - dir.x * dir.x - dir.y * dir.y).sqrt();
+        dir
     }
 
     fn get_spec_color(&self, material: &Material, eta: PTF, spec_col: &mut PTF3, sheen_col: &mut PTF3) {
@@ -366,6 +427,121 @@ impl Tracer {
         self.mix_ptf(&dielectric_fresnel, &metallic_fresnel, &material.metallic)
     }
 
+    fn disney_sample(&self, state: &State, v: &PTF3, n: &PTF3, l: &mut PTF3, pdf: &mut PTF, rng: &mut ThreadRng) -> PTF3 {
+
+        *pdf = 0.0;
+        let mut f = PTF3::zeros();
+
+        let mut r1 : PTF = rng.gen();
+        let r2 : PTF = rng.gen();
+
+        fn onb(n: &PTF3, t: &mut PTF3, b: &mut PTF3) {
+            let up = if n.z.abs() < 0.999 { PTF3::new(0.0, 0.0, 1.0) } else { PTF3::new(1.0, 0.0, 0.0) };
+
+            *t = glm::normalize(&glm::cross(&up, &n));
+            *b = glm::cross(&n, &t);
+        }
+
+        fn to_local(x: &PTF3, y: &PTF3, z: &PTF3, v: &PTF3) -> PTF3 {
+                PTF3::new(glm::dot(v, x), glm::dot(v, y), glm::dot(v, z))
+        }
+
+        fn to_world(x: &PTF3, y: &PTF3, z: &PTF3, v: &PTF3) -> PTF3 {
+            v.x * x + v.y * y + v.z * z
+        }
+
+        fn reflect(i: PTF3, n: PTF3) -> PTF3 {
+            i - PTF3::new(2.0, 2.0, 2.0).component_mul(&n) * glm::dot(&n, &i)
+        }
+
+        fn refract(i: PTF3, n: PTF3, eta: PTF) -> PTF3 {
+            let k = 1.0 - eta * eta * (1.0 - glm::dot(&n, &i) * glm::dot(&n, &i));
+            if k < 0.0 {
+                PTF3::zeros()
+            } else {
+                    eta * i - (eta * glm::dot(&n, &i) + k.sqrt()) * n
+            }
+        }
+
+        let mut t = PTF3::zeros();
+        let mut b = PTF3::zeros();
+
+        onb(n, &mut t, &mut b);
+        let v = to_local(&t, &b, n, &v); // NDotL = L.z; NDotV = V.z; NDotH = H.z
+
+        // Specular and sheen color
+        let mut spec_col = PTF3::zeros();
+        let mut sheen_col = PTF3::zeros();
+        self.get_spec_color(&state.material, state.eta, &mut spec_col, &mut sheen_col);
+
+        // Lobe weights
+        let mut diffuse_wt = 0.0; let mut spec_reflect_wt = 0.0; let mut spec_refract_wt = 0.0; let mut clearcoat_wt = 0.0;
+
+        let approx_fresnel = self.disney_fresnel(&state.material, state.eta, v.z, v.z);
+        self.get_lobe_probabilities(&state.material, &state.eta, &spec_col, approx_fresnel, &mut diffuse_wt, &mut spec_reflect_wt, &mut spec_refract_wt, &mut clearcoat_wt);
+
+        // CDF for picking a lobe
+        let mut cdf = [0.0, 0.0, 0.0, 0.0];
+        cdf[0] = diffuse_wt;
+        cdf[1] = cdf[0] + clearcoat_wt;
+        cdf[2] = cdf[1] + spec_reflect_wt;
+        cdf[3] = cdf[2] + spec_refract_wt;
+
+        if r1 < cdf[0] { // Diffuse Reflection Lobe
+            r1 /= cdf[0];
+            *l = self.cosine_sample_hemisphere(r1, r2);
+
+            let h = glm::normalize(&(*l + v));
+            f += self.eval_diffuse(&state.material, &sheen_col, &v, &l, &h, pdf);
+            *pdf *= diffuse_wt;
+        } else
+        if r1 < cdf[1] {// Clearcoat Lobe
+            r1 = (r1 - cdf[0]) / (cdf[1] - cdf[0]);
+
+            let mut h = self.sample_gtr1(state.material.clearcoat_gloss, r1, r2);
+
+            if h.z < 0.0 {
+                h = -h;
+            }
+
+            *l = glm::normalize(&reflect(-v, h));
+            f = self.eval_clearcoat(&state.material, &v, l, &h, pdf);
+            *pdf *= clearcoat_wt;
+        } else  // Specular Reflection/Refraction Lobes
+        {
+            r1 = (r1 - cdf[1]) / (1.0 - cdf[1]);
+            let mut h = self.sample_ggxvndf(&v, state.material.ax, state.material.ay, r1, r2);
+
+            if h.z < 0.0 {
+                h = -h;
+            }
+
+            // TODO: Refactor into metallic BRDF and specular BSDF
+            let fresnel = self.disney_fresnel(&state.material, state.eta, glm::dot(l, &h), glm::dot(&v, &h));
+            let ff = 1.0 - ((1.0 - fresnel) * state.material.spec_trans * (1.0 - state.material.metallic));
+
+            let rand : PTF = rng.gen();
+
+            if rand < ff {
+                *l = glm::normalize(&reflect(-v, h));
+
+                f = self.eval_spec_reflection(&state.material, state.eta, &spec_col, &v, l, &h, pdf);
+                *pdf *= ff;
+            } else {
+                *l = glm::normalize(&refract(-v, h, state.eta));
+
+                f = self.eval_spec_refraction(&state.material, state.eta, &v, l, &h, pdf);
+                *pdf *= 1.0 - ff;
+            }
+
+            *pdf *= spec_reflect_wt + spec_refract_wt;
+        }
+
+        *l = to_world(&t, &b, &n, &l);
+        f * glm::dot(n, l).abs()
+    }
+
+
     fn disney_eval(&self, state: &State, v: PTF3, n: &PTF3, l: &PTF3, bsdf_pdf: &mut PTF) -> PTF3 {
         *bsdf_pdf = 0.0;
         let mut f = PTF3::zeros();
@@ -404,6 +580,7 @@ impl Tracer {
         let mut sheen_col = PTF3::zeros();
         self.get_spec_color(&state.material, state.eta, &mut spec_col, &mut sheen_col);
 
+        // Lobe weights
         let mut diffuse_wt = 0.0; let mut spec_reflect_wt = 0.0; let mut spec_refract_wt = 0.0; let mut clearcoat_wt = 0.0;
 
         let fresnel = self.disney_fresnel(&state.material, state.eta, glm::dot(&l, &h), glm::dot(&v, &h));
