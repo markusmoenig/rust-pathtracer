@@ -1,6 +1,6 @@
 This is a port of the excellent [GLSL_Pathtracer](https://github.com/knightcrawler25/GLSL-PathTracer) to Rust utilizing an abstracted, trait based backend. Perfect for rendering procedural content.
 
-![Spheres](https://github.com/markusmoenig/rust-pathtracer/tree/master/images/spheres.png)
+![Spheres](https://github.com/markusmoenig/rust-pathtracer/blob/master/images/spheres.png)
 
 ### Rust Features
 
