@@ -1,5 +1,6 @@
 use crate::prelude::*;
 
+/// A trait based scene abstraction.
 #[allow(unused)]
 pub trait Scene : Sync + Send {
 

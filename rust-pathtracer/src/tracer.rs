@@ -44,7 +44,7 @@ impl Tracer {
                     let mut rng = thread_rng();
                     let cam_offset = PTF2::new(rng.gen(), rng.gen());
                     let coord = Vector2::new(xx, 1.0 - yy);
-                    let mut ray = self.scene.camera().gen_ray(coord, 80.0, cam_offset, width as PTF, height);
+                    let mut ray = self.scene.camera().gen_ray(coord, cam_offset, width as PTF, height);
 
                     // -
 

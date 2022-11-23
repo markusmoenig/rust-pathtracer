@@ -1,12 +1,14 @@
 
 use crate::prelude::*;
 
+/// An analytical light.
 pub struct AnalyticalLight {
     pub light           : Light,
 }
 
 impl AnalyticalLight {
 
+    /// Creates a spherical light based on its position, radius and emission.
     pub fn spherical(position: PTF3, radius: PTF, emission: PTF3) -> Self {
 
         let light = Light {

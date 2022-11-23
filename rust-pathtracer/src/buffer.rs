@@ -1,6 +1,7 @@
 
 use crate::prelude::*;
 
+/// A color buffer holding an array of either f32 or f64 pixels (as defined by PTF).
 pub struct ColorBuffer {
 
     pub width               : usize,
@@ -23,7 +24,7 @@ impl ColorBuffer {
         }
     }
 
-    /// Convert the pixel buffer to an Vec<u8>
+    /// Convert the pixel buffer to an Vec<u8> and converts gamma the colors from linear into gamma space.
     pub fn convert_to_u8(&self, frame: &mut [u8]) {
         for y in 0..self.height {
             for x in 0..self.width {

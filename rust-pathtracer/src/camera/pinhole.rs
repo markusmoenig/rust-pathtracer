@@ -1,9 +1,12 @@
 
 use crate::prelude::*;
 
+/// A traditional pinhole camera with an origin, center and fov.
 pub struct Pinhole {
     origin          : PTF3,
     center          : PTF3,
+
+    fov             : PTF,
 }
 
 impl Camera3D for Pinhole {
@@ -15,17 +18,29 @@ impl Camera3D for Pinhole {
 
         Self {
             origin,
-            center
+            center,
+
+            fov     : 80.0,
         }
     }
 
+    fn set(&mut self, origin: PTF3, center: PTF3) {
+        self.origin = origin;
+        self.center = center;
+    }
+
+    fn set_fov(&mut self, fov: PTF) {
+        self.fov = fov;
+    }
+
+
     #[inline(always)]
-    fn gen_ray(&self, p: Vector2<PTF>, fov: PTF, offset: PTF2, width: PTF, height: PTF) -> [Vector3<PTF>; 2] {
+    fn gen_ray(&self, p: Vector2<PTF>, offset: PTF2, width: PTF, height: PTF) -> [Vector3<PTF>; 2] {
         let ratio = width / height;
 
         let pixel_size = PTF2::new( 1.0 / width, 1.0 / height);
 
-        let half_width = (fov.to_radians() * 0.5).tan();
+        let half_width = (self.fov.to_radians() * 0.5).tan();
         let half_height = half_width / ratio;
 
         let up_vector = PTF3::new(0.0, 1.0, 0.0);

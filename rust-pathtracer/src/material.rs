@@ -10,6 +10,7 @@ pub enum MediumType {
     Emissive
 }
 
+/// The Medium struct for volumetric objects.
 #[derive(PartialEq, Clone, Debug)]
 pub struct Medium {
     pub medium_type             : MediumType,
@@ -40,6 +41,7 @@ pub enum AlphaMode
     Mask
 }
 
+/// The material struct holds all BSDF properties as well as the Medium.
 #[derive(PartialEq, Clone, Debug)]
 pub struct Material {
     pub base_color              : PTF3,
@@ -55,6 +57,7 @@ pub struct Material {
     pub sheen_tint              : PTF,
     pub clearcoat               : PTF,
     pub clearcoat_gloss         : PTF,
+    /// Do not use clearcoat_roughness directly, it is for internal use only. Use clearcoat_gloss.
     pub clearcoat_roughness     : PTF,
 
     pub spec_trans              : PTF,

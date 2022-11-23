@@ -1,6 +1,6 @@
 This is a port of the excellent [GLSL_Pathtracer](https://github.com/knightcrawler25/GLSL-PathTracer) to Rust utilizing an abstracted, trait based backend. Perfect for rendering procedural content.
 
-![Spheres](https://github.com/markusmoenig/rust-pathtracer/blob/master/images/spheres.png)
+![Spheres](images/spheres.png)
 
 ### Rust Features
 
@@ -14,6 +14,7 @@ This is a port of the excellent [GLSL_Pathtracer](https://github.com/knightcrawl
 * Implement a denoiser.
 * Emitters are untested right now.
 * Only spherical analytical lights right now.
+* Document classes for crate.
 * Implement a SDF based example scene.
 * Implement a mesh based example scene. PRs welcome.
 * Enhance the example renderer app with more options.
