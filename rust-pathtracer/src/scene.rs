@@ -24,6 +24,11 @@ pub trait Scene : Sync + Send {
     /// Return a reference for the light at the given index
     fn light_at(&self, index: usize) -> &AnalyticalLight;
 
+    /// The recursion depth for the path tracer
+    fn recursion_depth(&self) -> u16 {
+        4
+    }
+
     fn to_linear(&self, c: PTF3) -> PTF3 {
         PTF3::new(c.x.powf(2.2), c.y.powf(2.2), c.z.powf(2.2))
     }

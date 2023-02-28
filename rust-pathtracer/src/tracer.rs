@@ -54,6 +54,8 @@ impl Tracer {
                     let mut light_sample = LightSampleRec::new();
                     let mut scatter_sample = ScatterSampleRec::new();
 
+                    state.depth = self.scene.recursion_depth();
+
                     let alpha = 1.0;
 
                     for _i in 0..state.depth {

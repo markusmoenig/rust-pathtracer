@@ -11,5 +11,5 @@ log = "0.4"
 pixels = "0.9.0"
 tao = "0.12.2"
 rust-pathtracer = { path = "../rust-pathtracer" }
-nalgebra = "0.31.0"
-nalgebra-glm = "0.17.0"
+nalgebra = "0.32.1"
+nalgebra-glm = "0.18.0"
