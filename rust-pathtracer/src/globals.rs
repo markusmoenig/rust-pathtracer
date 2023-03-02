@@ -49,16 +49,16 @@ impl State {
     /// State post-processing, called by the tracer after calling Scene::closest_hit()
     pub fn finalize(&mut self, ray: &Ray) {
 
-        self.fhp = ray[0] + ray[1].mult_f(&self.hit_dist);
+        self.fhp = ray.at(&self.hit_dist);
 
-        if dot(&self.normal, &ray[1]) <= 0.0 {
+        if dot(&self.normal, &ray.direction) <= 0.0 {
             self.ffnormal = self.normal;
         } else {
             self.ffnormal = -self.normal;
         }
 
         self.material.finalize();
-        self.eta = if dot(&ray[1], &self.normal) < 0.0 { 1.0 / self.material.ior } else { self.material.ior };
+        self.eta = if dot(&ray.direction, &self.normal) < 0.0 { 1.0 / self.material.ior } else { self.material.ior };
     }
 
 }

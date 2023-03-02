@@ -76,7 +76,7 @@ impl Tracer {
                         radiance += self.direct_light(&ray, &state, true, &mut rng) * throughput;
 
                         // Sample BSDF for color and outgoing direction
-                        scatter_sample.f = self.disney_sample(&state, -ray[1], &state.ffnormal, &mut scatter_sample.l, &mut scatter_sample.pdf, &mut rng);
+                        scatter_sample.f = self.disney_sample(&state, -ray.direction, &state.ffnormal, &mut scatter_sample.l, &mut scatter_sample.pdf, &mut rng);
                         if scatter_sample.pdf > 0.0 {
                            throughput = throughput * (scatter_sample.f / F3::new_x(scatter_sample.pdf));
                         } else {
@@ -84,8 +84,8 @@ impl Tracer {
                         }
 
                         // Move ray origin to hit point and set direction for next bounce
-                        ray[1] = scatter_sample.l;
-                        ray[0] = state.fhp + self.eps * ray[1];
+                        ray.direction = scatter_sample.l;
+                        ray.origin = state.fhp + self.eps * ray.direction;
 
                     }
 
@@ -134,7 +134,7 @@ impl Tracer {
 
             if dot(&light_sample.direction, &light_sample.normal) < 0.0 {// Required for quad lights with single sided emission
 
-                let shadow_ray: Ray = [scatter_pos, light_sample.direction];
+                let shadow_ray: Ray = Ray::new(scatter_pos, light_sample.direction);
 
                 let in_shawdow = self.scene.any_hit(&shadow_ray, light_sample.dist - self.eps);
 
@@ -142,7 +142,7 @@ impl Tracer {
 
                     //ld += PTF3::new(0.1, 0.1, 0.1);
 
-                    scatter_sample.f = self.disney_eval(state, -ray[1], &state.ffnormal, &light_sample.direction, &mut scatter_sample.pdf);
+                    scatter_sample.f = self.disney_eval(state, -ray.direction, &state.ffnormal, &light_sample.direction, &mut scatter_sample.pdf);
 
                     let mut mis_weight = 1.0;
                     if analytical.light.area > 0.0 {// No MIS for distant light

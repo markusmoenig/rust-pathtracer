@@ -57,6 +57,6 @@ impl Camera3D for Pinhole {
         rd += horizontal.mult_f(&(pixel_size.x * offset.x + p.x));
         rd += vertical.mult_f(&(pixel_size.y * offset.y + p.y));
 
-        [self.origin, rd.normalize()]
+        Ray::new(self.origin, rd.normalize())
     }
 }

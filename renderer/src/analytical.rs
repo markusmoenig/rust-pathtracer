@@ -26,7 +26,7 @@ impl Scene for AnalyticalScene {
 
     fn background(&self, ray: &Ray) -> F3 {
         // Taken from https://raytracing.github.io/books/RayTracingInOneWeekend.html, a source of great knowledge
-        let t = 0.5 * (ray[1].y + 1.0);
+        let t = 0.5 * (ray.direction.y + 1.0);
         self.to_linear((1.0 - t) * F3::new(1.0, 1.0, 1.0) + t * F3::new(0.5, 0.7, 1.0)) * F3::new_x(0.1)
     }
 
@@ -41,7 +41,7 @@ impl Scene for AnalyticalScene {
 
         if let Some(d) = self.sphere(ray, center, 1.0) {
 
-            let hp = ray[0] + d * ray[1];
+            let hp = ray.at(&d);
             let normal = normalize(&(center - hp));
 
             state.hit_dist = d;
@@ -71,7 +71,7 @@ impl Scene for AnalyticalScene {
 
             if d < dist {
 
-                let hp = ray[0] + d * ray[1];
+                let hp = ray.at(&d);
                 let normal = normalize(&(center - hp));
 
                 state.hit_dist = d;
@@ -108,7 +108,7 @@ impl Scene for AnalyticalScene {
                     if (x1 + y1) % 2.0 < 1.0 { 0.25 } else { 0.1 }
                 }
 
-                let c = checker(ray[1].x / ray[1].y * 0.5 + 100.0, ray[1].z / ray[1].y * 0.5 + 100.0);
+                let c = checker(ray.direction.x / ray.direction.y * 0.5 + 100.0, ray.direction.z / ray.direction.y * 0.5 + 100.0);
 
                 state.material.rgb = F3::new(c, c, c);
                 state.material.roughness = 1.0;
@@ -155,8 +155,8 @@ impl AnalyticalIntersections for AnalyticalScene {
 
     // Based on https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection
     fn sphere(&self, ray: &Ray, center: F3, radius: F) -> Option<F> {
-        let l = center - ray[0];
-        let tca = l.dot(&ray[1]);
+        let l = center - ray.origin;
+        let tca = l.dot(&ray.direction);
         let d2 = l.dot(&l) - tca * tca;
         let radius2 = radius * radius;
         if d2 > radius2 {
@@ -183,10 +183,10 @@ impl AnalyticalIntersections for AnalyticalScene {
     // Ray plane intersection
     fn plane(&self, ray: &Ray) -> Option<F> {
         let normal = F3::new(0.0, 1.0, 0.0);
-        let denom = dot(&normal, &ray[1]);
+        let denom = dot(&normal, &ray.direction);
 
         if denom.abs() > 0.0001 {
-            let t = dot(&(F3::new(0.0, -1.0, 0.0) - ray[0]), &normal) / denom;
+            let t = dot(&(F3::new(0.0, -1.0, 0.0) - ray.origin), &normal) / denom;
             if t >= 0.0 {
                 return Some(t);
             }

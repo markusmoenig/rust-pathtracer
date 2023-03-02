@@ -9,8 +9,6 @@ const PI : F = std::f64::consts::PI;
 const INV_PI : F = 1.0 / std::f64::consts::PI;
 const TWO_PI : F = std::f64::consts::PI * 2.0;
 
-/// Rays are stored in an array [origin, direction]
-pub type Ray = [crate::fx::F3; 2];
 
 pub mod fx;
 pub mod math;
@@ -21,6 +19,7 @@ pub mod material;
 pub mod globals;
 pub mod buffer;
 pub mod light;
+pub mod ray;
 
 pub mod prelude {
 
@@ -31,8 +30,6 @@ pub mod prelude {
     pub use crate::fx::F3;
     pub use crate::fx::B3;
     pub use crate::math::*;
-
-    pub use crate::Ray;
 
     pub use crate::camera::Camera3D;
     pub use crate::camera::pinhole::Pinhole;
@@ -46,4 +43,6 @@ pub mod prelude {
 
     pub use crate::scene::Scene;
     pub use crate::tracer::Tracer;
+
+    pub use crate::ray::Ray;
 }
