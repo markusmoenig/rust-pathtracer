@@ -126,6 +126,30 @@ impl Material {
         self.ay = (self.roughness * aspect).max(0.001);
     }
 
+    /// Mixes this material with another material
+    pub fn mix(&self, other: &Material, v: F) -> Material {
+        let mut m = Material::new();
+
+        m.rgb = mix(&self.rgb, &other.rgb, &v);
+        m.emission = mix(&self.emission, &other.emission, &v);
+
+        m.anisotropic = mix_f(&self.anisotropic, &other.anisotropic, &v);
+        m.metallic = mix_f(&self.metallic, &other.metallic, &v);
+        m.roughness = mix_f(&self.roughness, &other.roughness, &v);
+        m.subsurface = mix_f(&self.subsurface, &other.subsurface, &v);
+        m.specular_tint = mix_f(&self.specular_tint, &other.specular_tint, &v);
+
+        m.sheen = mix_f(&self.sheen, &other.sheen, &v);
+        m.sheen_tint = mix_f(&self.sheen_tint, &other.sheen_tint, &v);
+
+        m.clearcoat = mix_f(&self.clearcoat, &other.clearcoat, &v);
+        m.clearcoat_gloss = mix_f(&self.clearcoat_gloss, &other.clearcoat_gloss, &v);
+        m.spec_trans = mix_f(&self.spec_trans, &other.spec_trans, &v);
+        m.ior = mix_f(&self.ior, &other.ior, &v);
+
+        m
+    }
+
     // --------- Getter / Setter
 
     pub fn get_rgb(&mut self) -> F3 {

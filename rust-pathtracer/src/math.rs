@@ -24,6 +24,15 @@ pub fn mix(a: &F3, b: &F3, v: &F) -> F3 {
     )
 }
 
+pub fn mix_f(a: &F, b: &F, v: &F) -> F {
+    (1.0 - v) * a + b * v
+}
+
+pub fn smoothstep(e0: F, e1: F, x: F) -> F {
+    let t = ((x - e0) / (e1 - e0)). clamp(0.0, 1.0);
+    return t * t * (3.0 - 2.0 * t);
+}
+
 pub fn pow(a: &F3, exp: &F3) -> F3 {
     F3::new(
         a.x.powf(exp.x),
