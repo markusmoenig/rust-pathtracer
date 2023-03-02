@@ -9,10 +9,10 @@ pub trait Camera3D : Sync + Send {
     fn new() -> Self where Self: Sized;
 
     /// Set the origin and center of the camera.
-    fn set(&mut self, origin: PTF3, center: PTF3);
+    fn set(&mut self, origin: F3, center: F3);
     /// Set the fov of the camera.
-    fn set_fov(&mut self, fov: PTF);
+    fn set_fov(&mut self, fov: F);
 
     /// Generate a ray.
-    fn gen_ray(&self, p: Vector2<PTF>, offset: PTF2, width: PTF, height: PTF) -> Ray;
+    fn gen_ray(&self, p: F2, offset: F2, width: F, height: F) -> Ray;
 }

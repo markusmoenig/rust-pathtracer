@@ -1,8 +1,10 @@
 use crate::prelude::*;
 
+use rhai::Engine;
+
 // Medium
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub enum MediumType {
     None,
     Absorb,
@@ -11,12 +13,12 @@ pub enum MediumType {
 }
 
 /// The Medium struct for volumetric objects.
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub struct Medium {
     pub medium_type             : MediumType,
-    pub density                 : PTF,
-    pub color                   : PTF3,
-    pub anisotropy              : PTF,
+    pub density                 : F,
+    pub color                   : F3,
+    pub anisotropy              : F,
 }
 
 impl Medium {
@@ -25,7 +27,7 @@ impl Medium {
         Self {
             medium_type         : MediumType::None,
             density             : 0.0,
-            color               : PTF3::new(0.0, 0.0, 0.0),
+            color               : F3::new(0.0, 0.0, 0.0),
             anisotropy          : 0.0,
         }
     }
@@ -33,7 +35,7 @@ impl Medium {
 
 // Material
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub enum AlphaMode
 {
     Opaque,
@@ -42,44 +44,44 @@ pub enum AlphaMode
 }
 
 /// The material struct holds all BSDF properties as well as the Medium.
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub struct Material {
-    pub base_color              : PTF3,
-    pub anisotropic             : PTF,
-    pub emission                : PTF3,
+    pub rgb                     : F3,
+    pub anisotropic             : F,
+    pub emission                : F3,
 
-    pub metallic                : PTF,
-    pub roughness               : PTF,
-    pub subsurface              : PTF,
-    pub specular_tint           : PTF,
+    pub metallic                : F,
+    pub roughness               : F,
+    pub subsurface              : F,
+    pub specular_tint           : F,
 
-    pub sheen                   : PTF,
-    pub sheen_tint              : PTF,
-    pub clearcoat               : PTF,
-    pub clearcoat_gloss         : PTF,
+    pub sheen                   : F,
+    pub sheen_tint              : F,
+    pub clearcoat               : F,
+    pub clearcoat_gloss         : F,
     /// Do not use clearcoat_roughness directly, it is for internal use only. Use clearcoat_gloss.
-    pub clearcoat_roughness     : PTF,
+    pub clearcoat_roughness     : F,
 
-    pub spec_trans              : PTF,
-    pub ior                     : PTF,
+    pub spec_trans              : F,
+    pub ior                     : F,
 
-    pub opacity                 : PTF,
+    pub opacity                 : F,
     pub alpha_mode              : AlphaMode,
-    pub alpha_cutoff            : PTF,
+    pub alpha_cutoff            : F,
 
-    pub ax                      : PTF,
-    pub ay                      : PTF,
+    pub ax                      : F,
+    pub ay                      : F,
 
     pub medium                  : Medium,
 }
 
 impl Material {
 
-    pub fn new(base_color: PTF3) -> Self {
+    pub fn new() -> Self {
 
         Self {
-            base_color,
-            emission            : PTF3::new(0.0, 0.0, 0.0),
+            rgb                 : F3::new(0.5, 0.5, 0.5),
+            emission            : F3::new(0.0, 0.0, 0.0),
 
             anisotropic         : 0.0,
             metallic            : 0.0,
@@ -112,7 +114,7 @@ impl Material {
 
         self.roughness = self.roughness.max(0.01);
 
-        fn mix_ptf(a: &PTF, b: &PTF, v: PTF) -> PTF {
+        fn mix_ptf(a: &F, b: &F, v: F) -> F {
             (1.0 - v) * a + b * v
         }
 
@@ -124,4 +126,40 @@ impl Material {
         self.ay = (self.roughness * aspect).max(0.001);
     }
 
+    // --------- Getter / Setter
+
+    pub fn get_rgb(&mut self) -> F3 {
+        self.rgb
+    }
+
+    pub fn set_rgb(&mut self, new_val: F3) {
+        self.rgb = new_val;
+    }
+
+    pub fn get_roughness(&mut self) -> F {
+        self.roughness
+    }
+
+    pub fn set_roughness(&mut self, new_val: F) {
+        self.roughness = new_val;
+    }
+
+    pub fn get_metallic(&mut self) -> F {
+        self.metallic
+    }
+
+    pub fn set_metallic(&mut self, new_val: F) {
+        self.metallic = new_val;
+    }
+
+    /// Register to the engine
+    pub fn register(engine: &mut Engine) {
+        engine.register_type_with_name::<Material>("Material")
+            .register_fn("Material", Material::new)
+
+            .register_get_set("roughness", Material::get_roughness, Material::set_roughness)
+            .register_get_set("metallic", Material::get_metallic, Material::set_metallic)
+
+            .register_get_set("rgb", Material::get_rgb, Material::set_rgb);
+    }
 }

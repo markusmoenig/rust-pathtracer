@@ -5,13 +5,13 @@ use crate::prelude::*;
 #[derive(PartialEq, Clone, Debug)]
 pub struct State {
     pub depth               : u16,
-    pub eta                 : PTF,
+    pub eta                 : F,
 
-    pub hit_dist            : PTF,
+    pub hit_dist            : F,
 
-    pub fhp                 : PTF3,
-    pub normal              : PTF3,
-    pub ffnormal            : PTF3,
+    pub fhp                 : F3,
+    pub normal              : F3,
+    pub ffnormal            : F3,
 
     pub is_emitter          : bool,
 
@@ -27,38 +27,38 @@ impl State {
 
             hit_dist        : -1.0,
 
-            fhp             : PTF3::new(0.0, 0.0, 0.0),
-            normal          : PTF3::new(0.0, 0.0, 0.0),
-            ffnormal        : PTF3::new(0.0, 0.0, 0.0),
+            fhp             : F3::zeros(),
+            normal          : F3::zeros(),
+            ffnormal        : F3::zeros(),
 
             is_emitter      : false,
 
-            material        : Material::new(PTF3::new(1.0, 1.0, 1.0)),
+            material        : Material::new(),
             medium          : Medium::new(),
         }
     }
 
     /// Calculate tangent and bitangent
-    pub fn onb(&mut self, n: PTF3, t: &mut PTF3, b: &mut PTF3) {
-        let up = if n.z.abs() < 0.999 { PTF3::new(0.0, 0.0, 1.0) } else { PTF3::new(1.0, 0.0, 0.0) };
+    pub fn onb(&mut self, n: F3, t: &mut F3, b: &mut F3) {
+        let up = if n.z.abs() < 0.999 { F3::new(0.0, 0.0, 1.0) } else { F3::new(1.0, 0.0, 0.0) };
 
-        *t = glm::normalize(&glm::cross(&up, &n));
-        *b = glm::cross(&n, &t);
+        *t = up.cross(&n).normalize();
+        *b = n.cross(&t);
     }
 
     /// State post-processing, called by the tracer after calling Scene::closest_hit()
     pub fn finalize(&mut self, ray: &Ray) {
 
-        self.fhp = ray[0] + ray[1] * self.hit_dist;
+        self.fhp = ray[0] + ray[1].mult_f(&self.hit_dist);
 
-        if glm::dot(&self.normal, &ray[1]) <= 0.0 {
+        if dot(&self.normal, &ray[1]) <= 0.0 {
             self.ffnormal = self.normal;
         } else {
             self.ffnormal = -self.normal;
         }
 
         self.material.finalize();
-        self.eta = if glm::dot(&ray[1], &self.normal) < 0.0 { 1.0 / self.material.ior } else { self.material.ior };
+        self.eta = if dot(&ray[1], &self.normal) < 0.0 { 1.0 / self.material.ior } else { self.material.ior };
     }
 
 }
@@ -75,12 +75,12 @@ pub enum LightType {
 #[derive(PartialEq, Clone, Debug)]
 pub struct Light {
     pub light_type          : LightType,
-    pub position            : PTF3,
-    pub emission            : PTF3,
-    pub u                   : PTF3,
-    pub v                   : PTF3,
-    pub radius              : PTF,
-    pub area                : PTF,
+    pub position            : F3,
+    pub emission            : F3,
+    pub u                   : F3,
+    pub v                   : F3,
+    pub radius              : F,
+    pub area                : F,
 }
 
 // ScatterSampleRec
@@ -88,16 +88,16 @@ pub struct Light {
 #[derive(PartialEq, Clone, Debug)]
 pub struct ScatterSampleRec {
 
-    pub l                   : PTF3,
-    pub f                   : PTF3,
-    pub pdf                 : PTF,
+    pub l                   : F3,
+    pub f                   : F3,
+    pub pdf                 : F,
 }
 
 impl ScatterSampleRec {
     pub fn new() -> Self {
         Self {
-            l               : PTF3::new(0.0, 0.0, 0.0),
-            f               : PTF3::new(0.0, 0.0, 0.0),
+            l               : F3::zeros(),
+            f               : F3::zeros(),
             pdf             : 0.0,
         }
     }
@@ -108,20 +108,20 @@ impl ScatterSampleRec {
 #[derive(PartialEq, Clone, Debug)]
 pub struct LightSampleRec {
 
-    pub normal              : PTF3,
-    pub emission            : PTF3,
-    pub direction           : PTF3,
+    pub normal              : F3,
+    pub emission            : F3,
+    pub direction           : F3,
 
-    pub dist                : PTF,
-    pub pdf                 : PTF,
+    pub dist                : F,
+    pub pdf                 : F,
 }
 
 impl LightSampleRec {
     pub fn new() -> Self {
         Self {
-            normal          : PTF3::new(0.0, 0.0, 0.0),
-            emission        : PTF3::new(0.0, 0.0, 0.0),
-            direction       : PTF3::new(0.0, 0.0, 0.0),
+            normal          : F3::zeros(),
+            emission        : F3::zeros(),
+            direction       : F3::zeros(),
 
             dist            : 0.0,
             pdf             : 0.0,

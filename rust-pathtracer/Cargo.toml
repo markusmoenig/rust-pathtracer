@@ -1,6 +1,6 @@
 [package]
 name = "rust-pathtracer"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 description = "A principled BSDF pathtracer with an abstracted backend. Perfect for rendering procedural content."
 license = "MIT"
@@ -8,7 +8,7 @@ keywords = ["pathtracer", "graphics", "principled", "BSDF", "raytracing"]
 repository = "https://github.com/markusmoenig/rust-pathtracer.git"
 
 [dependencies]
-nalgebra = "0.32.1"
-nalgebra-glm = "0.18.0"
 rayon = "1.5.3"
 rand = "0.8.5"
+rhai = { version = "1.12.0", default-features = true, features = ["sync", "internals"] }
+colors-transform = "0.2.11"

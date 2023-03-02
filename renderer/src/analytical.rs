@@ -12,7 +12,7 @@ impl Scene for AnalyticalScene {
 
     fn new() -> Self {
 
-        let lights = vec![AnalyticalLight::spherical(PTF3::new(3.0, 2.0, 2.0), 1.0, PTF3::new(3.0, 3.0, 3.0))];
+        let lights = vec![AnalyticalLight::spherical(F3::new(3.0, 2.0, 2.0), 1.0, F3::new(3.0, 3.0, 3.0))];
 
         Self {
             lights,
@@ -24,25 +24,25 @@ impl Scene for AnalyticalScene {
         &self.pinhole
     }
 
-    fn background(&self, ray: &Ray) -> PTF3 {
+    fn background(&self, ray: &Ray) -> F3 {
         // Taken from https://raytracing.github.io/books/RayTracingInOneWeekend.html, a source of great knowledge
         let t = 0.5 * (ray[1].y + 1.0);
-        self.to_linear((1.0 - t) * PTF3::new(1.0, 1.0, 1.0) + t * PTF3::new(0.5, 0.7, 1.0)) * 0.1
+        self.to_linear((1.0 - t) * F3::new(1.0, 1.0, 1.0) + t * F3::new(0.5, 0.7, 1.0)) * F3::new_x(0.1)
     }
 
 
     /// The closest hit, includes light sources.
-    fn closest_hit(&self, ray: &Ray, state: &mut State, light: &mut LightSampleRec) -> bool {
+    fn closest_hit(&self, ray: &Ray, state: &mut State, _light: &mut LightSampleRec) -> bool {
 
-        let mut dist = PTF::MAX;
+        let mut dist = F::MAX;
         let mut hit = false;
 
-        let mut center = PTF3::new(-1.1, 0.0, 0.0);
+        let mut center = F3::new(-1.1, 0.0, 0.0);
 
         if let Some(d) = self.sphere(ray, center, 1.0) {
 
-            let hp = ray[0] + ray[1] * d;
-            let normal = glm::normalize(&(center - hp));
+            let hp = ray[0] + d * ray[1];
+            let normal = normalize(&(center - hp));
 
             state.hit_dist = d;
             state.normal = normal;
@@ -52,7 +52,7 @@ impl Scene for AnalyticalScene {
             // state.material.clearcoat_gloss = 1.0;
             //state.material.roughness = 1.0;
 
-            state.material.base_color = PTF3::new(5.0, 5.0, 5.0);//PTF3::new(0.815, 0.418501512, 0.00180012);
+            state.material.rgb = F3::new(5.0, 5.0, 5.0);//PTF3::new(0.815, 0.418501512, 0.00180012);
             state.material.roughness = 0.05;
             state.material.metallic = 1.0;
 
@@ -65,19 +65,19 @@ impl Scene for AnalyticalScene {
             dist = d;
         }
 
-        center = PTF3::new(1.1, 0.0, 0.0);
+        center = F3::new(1.1, 0.0, 0.0);
 
         if let Some(d) = self.sphere(ray, center, 1.0) {
 
             if d < dist {
 
-                let hp = ray[0] + ray[1] * d;
-                let normal = glm::normalize(&(center - hp));
+                let hp = ray[0] + d * ray[1];
+                let normal = normalize(&(center - hp));
 
                 state.hit_dist = d;
                 state.normal = normal;
 
-                state.material.base_color = PTF3::new(1.0,0.186, 0.0);
+                state.material.rgb = F3::new(1.0,0.186, 0.0);
                 state.material.clearcoat = 1.0;
                 state.material.clearcoat_gloss = 1.0;
                 state.material.roughness = 0.6;
@@ -100,9 +100,9 @@ impl Scene for AnalyticalScene {
 
             if d < dist {
                 state.hit_dist = d;
-                state.normal = PTF3::new(0.0, 1.0, 0.0);
+                state.normal = F3::new(0.0, 1.0, 0.0);
 
-                fn checker(x: PTF, y: PTF) -> PTF {
+                fn checker(x: F, y: F) -> F {
                     let x1 = x.floor() % 2.0;
                     let y1 = y.floor() % 2.0;
                     if (x1 + y1) % 2.0 < 1.0 { 0.25 } else { 0.1 }
@@ -110,7 +110,7 @@ impl Scene for AnalyticalScene {
 
                 let c = checker(ray[1].x / ray[1].y * 0.5 + 100.0, ray[1].z / ray[1].y * 0.5 + 100.0);
 
-                state.material.base_color = PTF3::new(c, c, c);
+                state.material.rgb = F3::new(c, c, c);
                 state.material.roughness = 1.0;
 
                 hit = true;
@@ -121,13 +121,13 @@ impl Scene for AnalyticalScene {
     }
 
     /// Any hit
-    fn any_hit(&self, ray: &Ray, _max_dist: PTF) -> bool {
+    fn any_hit(&self, ray: &Ray, _max_dist: F) -> bool {
 
-        if let Some(_d) = self.sphere(ray, PTF3::new(-1.1, 0.0, 0.0), 1.0) {
+        if let Some(_d) = self.sphere(ray, F3::new(-1.1, 0.0, 0.0), 1.0) {
             return true;
         }
 
-        if let Some(_d) = self.sphere(ray, PTF3::new(1.1, 0.0, 0.0), 1.0) {
+        if let Some(_d) = self.sphere(ray, F3::new(1.1, 0.0, 0.0), 1.0) {
             return true;
         }
 
@@ -154,7 +154,7 @@ impl Scene for AnalyticalScene {
 impl AnalyticalIntersections for AnalyticalScene {
 
     // Based on https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection
-    fn sphere(&self, ray: &Ray, center: PTF3, radius: PTF) -> Option<PTF> {
+    fn sphere(&self, ray: &Ray, center: F3, radius: F) -> Option<F> {
         let l = center - ray[0];
         let tca = l.dot(&ray[1]);
         let d2 = l.dot(&l) - tca * tca;
@@ -181,12 +181,12 @@ impl AnalyticalIntersections for AnalyticalScene {
    }
 
     // Ray plane intersection
-    fn plane(&self, ray: &Ray) -> Option<PTF> {
-        let normal = PTF3::new(0.0, 1.0, 0.0);
-        let denom = glm::dot(&normal, &ray[1]);
+    fn plane(&self, ray: &Ray) -> Option<F> {
+        let normal = F3::new(0.0, 1.0, 0.0);
+        let denom = dot(&normal, &ray[1]);
 
         if denom.abs() > 0.0001 {
-            let t = glm::dot(&(PTF3::new(0.0, -1.0, 0.0) - ray[0]), &normal) / denom;
+            let t = dot(&(F3::new(0.0, -1.0, 0.0) - ray[0]), &normal) / denom;
             if t >= 0.0 {
                 return Some(t);
             }
@@ -198,7 +198,7 @@ impl AnalyticalIntersections for AnalyticalScene {
 #[allow(unused)]
 pub trait AnalyticalIntersections : Sync + Send {
 
-    fn sphere(&self, ray: &Ray, center: PTF3, radius: PTF) -> Option<PTF>;
-    fn plane(&self, ray: &Ray) -> Option<PTF>;
+    fn sphere(&self, ray: &Ray, center: F3, radius: F) -> Option<F>;
+    fn plane(&self, ray: &Ray) -> Option<F>;
 
 }
