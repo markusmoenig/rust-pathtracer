@@ -45,13 +45,13 @@ pub trait Scene : Sync + Send {
     fn new() -> Self where Self: Sized;
 
     /// Background color for the given ray
-    fn background(&self, ray: &Ray) -> PTF3;
+    fn background(&self, ray: &Ray) -> P3;
 
     /// Closest hit should return the state.hit_dist, state.normal and fill out the state.material as needed
     fn closest_hit(&self, ray: &Ray, state: &mut State, light: &mut LightSampleRec) -> bool;
 
     /// Used for shadow rays.
-    fn any_hit(&self, ray: &Ray, max_dist: PTF) -> bool;
+    fn any_hit(&self, ray: &Ray, max_dist: F) -> bool;
 
     /// Return the camera for the scene
     fn camera(&self) -> &Box<dyn Camera3D>;
