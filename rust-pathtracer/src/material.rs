@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-use rhai::Engine;
+use rhai::{Engine, FnPtr};
 
 // Medium
 
@@ -44,7 +44,7 @@ pub enum AlphaMode
 }
 
 /// The material struct holds all BSDF properties as well as the Medium.
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct Material {
     pub rgb                     : F3,
     pub anisotropic             : F,
@@ -73,6 +73,8 @@ pub struct Material {
     pub ay                      : F,
 
     pub medium                  : Medium,
+
+    pub procedural              : Option<FnPtr>,
 }
 
 impl Material {
@@ -105,7 +107,9 @@ impl Material {
             medium              : Medium::new(),
 
             ax                  : 0.0,
-            ay                  : 0.0
+            ay                  : 0.0,
+
+            procedural          : None,
         }
     }
 
@@ -160,12 +164,20 @@ impl Material {
         self.rgb = new_val;
     }
 
-    pub fn get_roughness(&mut self) -> F {
-        self.roughness
+    pub fn get_emission(&mut self) -> F3 {
+        self.emission
     }
 
-    pub fn set_roughness(&mut self, new_val: F) {
-        self.roughness = new_val;
+    pub fn set_emission(&mut self, new_val: F3) {
+        self.emission = new_val;
+    }
+
+    pub fn get_anisotropic(&mut self) -> F {
+        self.anisotropic
+    }
+
+    pub fn set_anisotropic(&mut self, new_val: F) {
+        self.anisotropic = new_val;
     }
 
     pub fn get_metallic(&mut self) -> F {
@@ -176,14 +188,112 @@ impl Material {
         self.metallic = new_val;
     }
 
+    pub fn get_roughness(&mut self) -> F {
+        self.roughness
+    }
+
+    pub fn set_roughness(&mut self, new_val: F) {
+        self.roughness = new_val;
+    }
+
+    pub fn get_subsurface(&mut self) -> F {
+        self.subsurface
+    }
+
+    pub fn set_subsurface(&mut self, new_val: F) {
+        self.subsurface = new_val;
+    }
+
+    pub fn get_specular_tint(&mut self) -> F {
+        self.specular_tint
+    }
+
+    pub fn set_specular_tint(&mut self, new_val: F) {
+        self.specular_tint = new_val;
+    }
+
+    pub fn get_sheen(&mut self) -> F {
+        self.sheen
+    }
+
+    pub fn set_sheen(&mut self, new_val: F) {
+        self.sheen = new_val;
+    }
+
+    pub fn get_sheen_tint(&mut self) -> F {
+        self.sheen_tint
+    }
+
+    pub fn set_sheen_tint(&mut self, new_val: F) {
+        self.sheen_tint = new_val;
+    }
+
+    pub fn get_clearcoat(&mut self) -> F {
+        self.clearcoat
+    }
+
+    pub fn set_clearcoat(&mut self, new_val: F) {
+        self.clearcoat = new_val;
+    }
+
+    pub fn get_clearcoat_gloss(&mut self) -> F {
+        self.clearcoat_gloss
+    }
+
+    pub fn set_clearcoat_gloss(&mut self, new_val: F) {
+        self.clearcoat_gloss = new_val;
+    }
+
+    pub fn get_spec_trans(&mut self) -> F {
+        self.spec_trans
+    }
+
+    pub fn set_spec_trans(&mut self, new_val: F) {
+        self.spec_trans = new_val;
+    }
+
+    pub fn get_ior(&mut self) -> F {
+        self.ior
+    }
+
+    pub fn set_ior(&mut self, new_val: F) {
+        self.ior = new_val;
+    }
+
+    pub fn get_procedural(&mut self) -> FnPtr {
+        if let Some(procedural) = &self.procedural {
+            procedural.clone()
+        } else {
+            FnPtr::new("empty").ok().unwrap()
+        }
+    }
+
+    pub fn set_procedural(&mut self, new_val: FnPtr) {
+        self.procedural = Some(new_val)
+    }
+
     /// Register to the engine
     pub fn register(engine: &mut Engine) {
         engine.register_type_with_name::<Material>("Material")
             .register_fn("Material", Material::new)
 
+            .register_get_set("rgb", Material::get_rgb, Material::set_rgb)
+            .register_get_set("emission", Material::get_emission, Material::set_emission)
+
+            .register_get_set("anisotropic", Material::get_anisotropic, Material::set_anisotropic)
             .register_get_set("roughness", Material::get_roughness, Material::set_roughness)
             .register_get_set("metallic", Material::get_metallic, Material::set_metallic)
+            .register_get_set("subsurface", Material::get_subsurface, Material::set_subsurface)
+            .register_get_set("specular_tint", Material::get_specular_tint, Material::set_specular_tint)
 
-            .register_get_set("rgb", Material::get_rgb, Material::set_rgb);
+            .register_get_set("sheen", Material::get_sheen, Material::set_sheen)
+            .register_get_set("sheen_tint", Material::get_sheen_tint, Material::set_sheen_tint)
+            .register_get_set("clearcoat", Material::get_clearcoat, Material::set_clearcoat)
+            .register_get_set("clearcoat_gloss", Material::get_clearcoat_gloss, Material::set_clearcoat_gloss)
+
+            .register_get_set("spec_trans", Material::get_spec_trans, Material::set_spec_trans)
+            .register_get_set("ior", Material::get_ior, Material::set_ior)
+
+            .register_get_set("procedural", Material::get_procedural, Material::set_procedural);
     }
 }

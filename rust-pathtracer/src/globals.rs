@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 // State
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct State {
     pub depth               : u16,
     pub eta                 : F,
