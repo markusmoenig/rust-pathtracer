@@ -12,7 +12,8 @@ impl Scene for AnalyticalScene {
 
     fn new() -> Self {
 
-        let lights = vec![AnalyticalLight::spherical(F3::new(3.0, 2.0, 2.0), 1.0, F3::new(3.0, 3.0, 3.0))];
+        let em = 8.0;
+        let lights = vec![AnalyticalLight::spherical(F3::new(3.0, 2.0, 2.0), 1.0, F3::new(em, em, em))];
 
         Self {
             lights,
@@ -42,21 +43,22 @@ impl Scene for AnalyticalScene {
         if let Some(d) = self.sphere(ray, center, 1.0) {
 
             let hp = ray.at(&d);
-            let normal = normalize(&(center - hp));
+            let normal = normalize(&(hp - center));
 
             state.hit_dist = d;
             state.normal = normal;
 
-            // state.material.base_color = PTF3::new(1.0,0.4, 0.0);
+            // state.material.rgb = PTF3::new(1.0,0.4, 0.0);
             // state.material.clearcoat = 1.0;
             // state.material.clearcoat_gloss = 1.0;
             //state.material.roughness = 1.0;
 
-            state.material.rgb = F3::new(5.0, 5.0, 5.0);//PTF3::new(0.815, 0.418501512, 0.00180012);
+            state.material.rgb = F3::new_x(5.0);//PTF3::new(0.815, 0.418501512, 0.00180012);
             state.material.roughness = 0.05;
             state.material.metallic = 1.0;
+            //state.material.spec_trans = 1.0;
 
-            // state.material.base_color = PTF3::new(1.0,1.0, 1.0);
+            // state.material.rgb = PTF3::new(1.0,1.0, 1.0);
             // state.material.spec_trans = 1.0;
             // state.material.roughness = 0.01;
             // state.material.ior = 1.45;
@@ -72,21 +74,21 @@ impl Scene for AnalyticalScene {
             if d < dist {
 
                 let hp = ray.at(&d);
-                let normal = normalize(&(center - hp));
+                let normal = normalize(&(hp - center));
 
                 state.hit_dist = d;
                 state.normal = normal;
 
                 state.material.rgb = F3::new(1.0,0.186, 0.0);
-                state.material.clearcoat = 1.0;
-                state.material.clearcoat_gloss = 1.0;
-                state.material.roughness = 0.6;
+                //state.material.clearcoat = 1.0;
+                //state.material.clearcoat_gloss = 1.0;
+                state.material.roughness = 0.3;
 
-                // state.material.base_color = PTF3::new(0.9,0.9, 0.9);
+                // state.material.rgb = F3::new(0.9,0.9, 0.9);
                 // state.material.roughness = 0.2;
                 // state.material.metallic = 1.0;
 
-                // state.material.base_color = PTF3::new(1.0,1.0, 1.0);
+                // state.material.rgb = F3::new(1.0,1.0, 1.0);
                 // state.material.spec_trans = 1.0;
                 // state.material.roughness = 0.01;
                 // state.material.ior = 1.45;

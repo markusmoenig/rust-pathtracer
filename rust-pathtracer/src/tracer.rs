@@ -115,7 +115,7 @@ impl Tracer {
         let mut ld = F3::zeros();
         let li;
 
-        let scatter_pos = state.fhp + state.ffnormal.mult_f(&self.eps);
+        let scatter_pos = state.fhp + self.eps * state.ffnormal;
         let mut scatter_sample = ScatterSampleRec::new();
 
         let number_lights = self.scene.number_of_lights();
@@ -139,9 +139,6 @@ impl Tracer {
                 let in_shawdow = self.scene.any_hit(&shadow_ray, light_sample.dist - self.eps);
 
                 if in_shawdow == false {
-
-                    //ld += PTF3::new(0.1, 0.1, 0.1);
-
                     scatter_sample.f = self.disney_eval(state, -ray.direction, &state.ffnormal, &light_sample.direction, &mut scatter_sample.pdf);
 
                     let mut mis_weight = 1.0;

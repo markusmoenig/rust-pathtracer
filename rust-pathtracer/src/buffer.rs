@@ -24,6 +24,8 @@ impl ColorBuffer {
         }
     }
 
+    // TODO: Multithread the conversion routines
+
     /// Convert the frame to an u8 vec
     pub fn to_u8_vec(&self) -> Vec<u8> {
 
@@ -33,7 +35,8 @@ impl ColorBuffer {
         for y in 0..self.height {
             for x in 0..self.width {
                 let d = x * 4 + y * self.width * 4;
-                let c = [(source[d] * 255.0) as u8, (source[d+1] * 255.0) as u8,  (source[d+2] * 255.0) as u8,  (source[d+3] * 255.0) as u8];
+                //let c = [(source[d] * 255.0) as u8, (source[d+1] * 255.0) as u8,  (source[d+2] * 255.0) as u8,  (source[d+3] * 255.0) as u8];
+                let c = [(source[d].powf(0.4545) * 255.0) as u8, (source[d+1].powf(0.4545) * 255.0) as u8, (source[d+2].powf(0.4545) * 255.0) as u8, (source[d+3] * 255.0) as u8];
                 out[d..d + 4].copy_from_slice(&c);
             }
         }

@@ -1,7 +1,7 @@
 use crate::prelude::*;
 
 use colors_transform::Color;
-use rhai::{Engine};
+use rhai::{Engine, EvalAltResult};
 
 use std::ops::Add;
 use std::ops::Sub;
@@ -129,6 +129,30 @@ impl F2 {
 
             engine.register_fn("-", |a: F2, b: F2| -> F2 {
                 F2::new(a.x - b.x, a.y - b.y)
+            });
+
+            engine.register_fn("*", |a: F2, b: F2| -> F2 {
+                F2::new(a.x * b.x, a.y * b.y)
+            });
+
+            engine.register_fn("*", |a: F, b: F2| -> F2 {
+                F2::new(a * b.x, a * b.y)
+            });
+
+            engine.register_fn("*", |a: F2, b: F| -> F2 {
+                F2::new(a.x * b, a.y * b)
+            });
+
+            engine.register_fn("/", |a: F2, b: F2| -> F2 {
+                F2::new(a.x / b.x, a.y / b.y)
+            });
+
+            engine.register_fn("/", |a: F, b: F2| -> F2 {
+                F2::new(a / b.x, a / b.y)
+            });
+
+            engine.register_fn("/", |a: F2, b: F| -> F2 {
+                F2::new(a.x / b, a.y / b)
             });
         }
 }
@@ -340,6 +364,42 @@ impl F3 {
         engine.register_fn("-", |a: F3, b: F3| -> F3 {
             F3::new(a.x - b.x, a.y - b.y, a.z - b.z)
         });
+
+        engine.register_fn("*", |a: F3, b: F3| -> F3 {
+            F3::new(a.x * b.x, a.y * b.y, a.z * b.z)
+        });
+
+        engine.register_fn("*", |a: F, b: F3| -> F3 {
+            F3::new(a * b.x, a * b.y, a * b.z)
+        });
+
+        engine.register_fn("*", |a: F3, b: F| -> F3 {
+            F3::new(a.x * b, a.y * b, a.z * b)
+        });
+
+        // Swizzle F3 -> F2
+        engine.register_indexer_get(|o: &mut F3, prop: &str| -> Result<F2, Box<EvalAltResult>> {
+            match prop {
+                "xz" => {
+                    Ok(F2::new(o.x, o.z))
+                },
+                _ => {
+                    Err("F3: Property not found".into())
+                }
+            }
+        });
+        /*
+        // Swizzle F3 -> F3
+        engine.register_indexer_get(|o: &mut F3, prop: &str| -> Result<F3, Box<EvalAltResult>> {
+            match prop {
+                "xxx" => {
+                    Ok(F3::new(o.x, o.x, o.x))
+                },
+                _ => {
+                    Err("F3: Property not found".into())
+                }
+            }
+        });*/
     }
 }
 
