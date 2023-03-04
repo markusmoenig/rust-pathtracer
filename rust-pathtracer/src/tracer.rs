@@ -286,8 +286,8 @@ impl Tracer {
     }
 
     fn smithganiso(&self, ndotv: &F, vdotx: &F, vdoty: &F, ax: &F, ay: &F) -> F {
-        let a = vdotx / ax;
-        let b = vdoty / ay;
+        let a = vdotx * ax;
+        let b = vdoty * ay;
         let c = ndotv;
         (2.0 * ndotv) / (ndotv + (a * a + b * b + c * c).sqrt())
     }

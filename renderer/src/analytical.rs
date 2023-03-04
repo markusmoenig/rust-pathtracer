@@ -12,7 +12,7 @@ impl Scene for AnalyticalScene {
 
     fn new() -> Self {
 
-        let em = 8.0;
+        let em = 5.0;
         let lights = vec![AnalyticalLight::spherical(F3::new(3.0, 2.0, 2.0), 1.0, F3::new(em, em, em))];
 
         Self {
@@ -28,7 +28,7 @@ impl Scene for AnalyticalScene {
     fn background(&self, ray: &Ray) -> F3 {
         // Taken from https://raytracing.github.io/books/RayTracingInOneWeekend.html, a source of great knowledge
         let t = 0.5 * (ray.direction.y + 1.0);
-        self.to_linear((1.0 - t) * F3::new(1.0, 1.0, 1.0) + t * F3::new(0.5, 0.7, 1.0)) * F3::new_x(0.1)
+        self.to_linear((1.0 - t) * F3::new(1.0, 1.0, 1.0) + t * F3::new(0.5, 0.7, 1.0)) * F3::new_x(0.8)
     }
 
 
@@ -53,8 +53,8 @@ impl Scene for AnalyticalScene {
             // state.material.clearcoat_gloss = 1.0;
             //state.material.roughness = 1.0;
 
-            state.material.rgb = F3::new_x(5.0);//PTF3::new(0.815, 0.418501512, 0.00180012);
-            state.material.roughness = 0.05;
+            state.material.rgb = F3::new_x(1.0);//PTF3::new(0.815, 0.418501512, 0.00180012);
+            state.material.roughness = 0.02;
             state.material.metallic = 1.0;
             //state.material.spec_trans = 1.0;
 
