@@ -12,7 +12,7 @@ impl Scene for AnalyticalScene {
 
     fn new() -> Self {
 
-        let em = 5.0;
+        let em = 3.0;
         let lights = vec![AnalyticalLight::spherical(F3::new(3.0, 2.0, 2.0), 1.0, F3::new(em, em, em))];
 
         Self {
@@ -28,12 +28,12 @@ impl Scene for AnalyticalScene {
     fn background(&self, ray: &Ray) -> F3 {
         // Taken from https://raytracing.github.io/books/RayTracingInOneWeekend.html, a source of great knowledge
         let t = 0.5 * (ray.direction.y + 1.0);
-        self.to_linear((1.0 - t) * F3::new(1.0, 1.0, 1.0) + t * F3::new(0.5, 0.7, 1.0)) * F3::new_x(0.8)
+        self.to_linear((1.0 - t) * F3::new(1.0, 1.0, 1.0) + t * F3::new(0.5, 0.7, 1.0)) * F3::new_x(0.5)
     }
 
 
     /// The closest hit, includes light sources.
-    fn closest_hit(&self, ray: &Ray, state: &mut State, _light: &mut LightSampleRec) -> bool {
+    fn closest_hit(&self, ray: &Ray, state: &mut State, light_sample: &mut LightSampleRec) -> bool {
 
         let mut dist = F::MAX;
         let mut hit = false;
@@ -54,7 +54,7 @@ impl Scene for AnalyticalScene {
             //state.material.roughness = 1.0;
 
             state.material.rgb = F3::new_x(1.0);//PTF3::new(0.815, 0.418501512, 0.00180012);
-            state.material.roughness = 0.02;
+            state.material.roughness = 0.05;
             state.material.metallic = 1.0;
             //state.material.spec_trans = 1.0;
 
@@ -80,9 +80,9 @@ impl Scene for AnalyticalScene {
                 state.normal = normal;
 
                 state.material.rgb = F3::new(1.0,0.186, 0.0);
-                //state.material.clearcoat = 1.0;
-                //state.material.clearcoat_gloss = 1.0;
-                state.material.roughness = 0.3;
+                state.material.clearcoat = 1.0;
+                state.material.clearcoat_gloss = 1.0;
+                state.material.roughness = 0.1;
 
                 // state.material.rgb = F3::new(0.9,0.9, 0.9);
                 // state.material.roughness = 0.2;
@@ -117,6 +117,10 @@ impl Scene for AnalyticalScene {
 
                 hit = true;
             }
+        }
+
+        if self.sample_lights(ray, state, light_sample, &self.lights) {
+            hit = true;
         }
 
         hit

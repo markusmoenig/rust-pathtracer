@@ -73,6 +73,19 @@ impl Tracer {
 
                         radiance += state.material.emission * throughput;
 
+                        // Gather radiance from light and use scatterSample.pdf from previous bounce for MIS
+                        if state.is_emitter {
+                            let mut mis_weight = 1.0;
+
+                            if state.depth > 0 {
+                                mis_weight = self.power_heuristic(&scatter_sample.pdf, &light_sample.pdf);
+                            }
+
+                            radiance += mis_weight * light_sample.emission * throughput;
+
+                            break;
+                        }
+
                         radiance += self.direct_light(&ray, &state, true, &mut rng) * throughput;
 
                         // Sample BSDF for color and outgoing direction
