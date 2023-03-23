@@ -6,6 +6,12 @@ use rhai::Engine;
 pub struct Ray {
     pub origin          : F3,
     pub direction       : F3,
+
+    pub inv_direction   : F3,
+
+    pub sign_x          : usize,
+    pub sign_y          : usize,
+    pub sign_z          : usize,
 }
 
 impl Ray {
@@ -13,7 +19,12 @@ impl Ray {
 
         Self {
             origin,
-            direction
+            direction,
+
+            inv_direction   : F3::new(1.0 / direction.x, 1.0 / direction.y, 1.0 / direction.z),
+            sign_x          : (direction.x < 0.0) as usize,
+            sign_y          : (direction.y < 0.0) as usize,
+            sign_z          : (direction.z < 0.0) as usize
         }
     }
 

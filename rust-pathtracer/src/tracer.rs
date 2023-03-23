@@ -13,7 +13,7 @@ impl Tracer {
     pub fn new(scene: Box<dyn Scene>) -> Self {
         Self {
 
-            eps         : 0.0001,
+            eps         : 0.005,
             scene,
         }
     }

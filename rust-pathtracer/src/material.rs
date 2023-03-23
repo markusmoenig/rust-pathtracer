@@ -291,7 +291,7 @@ impl Material {
             .register_get_set("clearcoat", Material::get_clearcoat, Material::set_clearcoat)
             .register_get_set("clearcoat_gloss", Material::get_clearcoat_gloss, Material::set_clearcoat_gloss)
 
-            .register_get_set("spec_trans", Material::get_spec_trans, Material::set_spec_trans)
+            .register_get_set("transmission", Material::get_spec_trans, Material::set_spec_trans)
             .register_get_set("ior", Material::get_ior, Material::set_ior)
 
             .register_get_set("procedural", Material::get_procedural, Material::set_procedural);

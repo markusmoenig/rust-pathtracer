@@ -308,6 +308,16 @@ impl F3 {
         F3::new(self.x.abs(), self.y.abs(), self.z.abs())
     }
 
+    /// floor this vector
+    pub fn floor(&self) -> F3 {
+        F3::new(self.x.floor(), self.y.floor(), self.z.floor())
+    }
+
+    /// fract this vector
+    pub fn fract(&self) -> F3 {
+        F3::new(self.x.fract(), self.y.fract(), self.z.fract())
+    }
+
     /// Returns the length
     pub fn length(&self) -> F {
         (self.x * self.x + self.y * self.y + self.z * self.z).sqrt()
@@ -342,6 +352,14 @@ impl F3 {
         F3::new(self.x.max(*other), self.y.max(*other), self.z.max(*other))
     }
 
+    pub fn to_linear(&mut self) -> F3 {
+        F3::new(self.x.powf(2.2), self.y.powf(2.2), self.z.powf(2.2))
+    }
+
+    pub fn to_gamma(&mut self) -> F3 {
+        F3::new(self.x.powf(1.0/2.2), self.y.powf(1.0/2.2), self.z.powf(1.0/2.2))
+    }
+
     /// Register to the engine
     pub fn register(engine: &mut Engine) {
         engine.register_type_with_name::<F3>("F3")
@@ -351,8 +369,12 @@ impl F3 {
             .register_fn("F3", F3::from)
             .register_fn("F3", F3::color)
             .register_fn("normalize", F3::normalize)
+            .register_fn("floor", F3::floor)
+            .register_fn("fract", F3::fract)
             .register_fn("length", F3::length)
             .register_fn("copy", F3::clone)
+            .register_fn("to_linear", F3::to_linear)
+            .register_fn("to_gamma", F3::to_gamma)
             .register_get_set("x", F3::get_x, F3::set_x)
             .register_get_set("y", F3::get_y, F3::set_y)
             .register_get_set("z", F3::get_z, F3::set_z);

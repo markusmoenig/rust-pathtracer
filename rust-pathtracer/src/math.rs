@@ -12,6 +12,14 @@ pub fn normalize(a: & F3) -> F3 {
     a.normalize()
 }
 
+pub fn floor(a: & F3) -> F3 {
+    a.floor()
+}
+
+pub fn fract(a: & F3) -> F3 {
+    a.fract()
+}
+
 pub fn length(a: & F3) -> F {
     a.length()
 }
