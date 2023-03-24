@@ -84,6 +84,11 @@ impl F2 {
         (self.x * self.x + self.y * self.y).sqrt()
     }
 
+    /// abs this vector
+    pub fn abs(&self) -> F2 {
+        F2::new(self.x.abs(), self.y.abs())
+    }
+
     pub fn dot(&self, other: &F2) -> F {
         self.x * other.x + self.y * other.y
     }
@@ -92,6 +97,10 @@ impl F2 {
         F2::new(self.x * other,
             self.y * other
         )
+    }
+
+    pub fn max_f(&self, other: &F) -> F2 {
+        F2::new(self.x.max(*other), self.y.max(*other))
     }
 
     // Temporaries until proper implementation
