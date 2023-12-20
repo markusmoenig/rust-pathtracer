@@ -2,12 +2,12 @@
 //! Perfect for rendering procedural content.
 //!
 
-pub type I = i64;
-pub type F = f64;
+pub type I = i32;
+pub type F = f32;
 
-const PI : F = std::f64::consts::PI;
-const INV_PI : F = 1.0 / std::f64::consts::PI;
-const TWO_PI : F = std::f64::consts::PI * 2.0;
+const PI : F = std::f32::consts::PI;
+const INV_PI : F = 1.0 / std::f32::consts::PI;
+const TWO_PI : F = std::f32::consts::PI * 2.0;
 
 
 pub mod fx;

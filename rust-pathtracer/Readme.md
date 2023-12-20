@@ -1,5 +1,7 @@
 This is a port of the excellent [GLSL_Pathtracer](https://github.com/knightcrawler25/GLSL-PathTracer) to Rust utilizing an abstracted, trait based backend. Perfect for rendering procedural content.
 
+![Spheres](images/spheres.png)
+
 ### Rust Features
 
 * Multi threaded using [rayon](https://github.com/rayon-rs/rayon).
@@ -12,6 +14,7 @@ This is a port of the excellent [GLSL_Pathtracer](https://github.com/knightcrawl
 * Implement a denoiser.
 * Emitters are untested right now.
 * Only spherical analytical lights right now.
+* Document classes for crate.
 * Implement a SDF based example scene.
 * Implement a mesh based example scene. PRs welcome.
 * Enhance the example renderer app with more options.
@@ -45,7 +48,7 @@ pub trait Scene : Sync + Send {
     fn new() -> Self where Self: Sized;
 
     /// Background color for the given ray
-    fn background(&self, ray: &Ray) -> P3;
+    fn background(&self, ray: &Ray) -> F3;
 
     /// Closest hit should return the state.hit_dist, state.normal and fill out the state.material as needed
     fn closest_hit(&self, ray: &Ray, state: &mut State, light: &mut LightSampleRec) -> bool;

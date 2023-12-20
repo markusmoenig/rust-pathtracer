@@ -41,7 +41,7 @@ impl Tracer {
 
                     // Camera
 
-                    let mut rng = thread_rng();
+                    let mut rng: ThreadRng = thread_rng();
                     let cam_offset = F2::new(rng.gen(), rng.gen());
                     let coord = F2::new(xx, 1.0 - yy);
                     let mut ray = self.scene.camera().gen_ray(coord, cam_offset, width as F, height);
@@ -176,7 +176,7 @@ impl Tracer {
             LightType::Spherical => {
 
                 fn uniform_sample_hemisphere(r1: &F, r2: &F) -> F3 {
-                    let r = 0.0_f64.max(1.0 - r1 * r1).sqrt();
+                    let r = 0.0_f32.max(1.0 - r1 * r1).sqrt();
                     let phi = crate::TWO_PI * r2;
                     F3::new(r * phi.cos(), r * phi.sin(), *r1)
                 }
@@ -240,7 +240,7 @@ impl Tracer {
     }
 
     fn sample_gtr1(&self, rgh: F, r1: F, _r2: F) -> F3 {
-        let a = 0.001_f64.max(rgh);
+        let a = 0.001_f32.max(rgh);
         let a2 = a * a;
 
         let phi = r1 * crate::TWO_PI;
@@ -268,9 +268,9 @@ impl Tracer {
         let s = 0.5 * (1.0 + vh.z);
         t2 = (1.0 - s) * (1.0 - t1 * t1).sqrt() + s * t2;
 
-        let nh = t1 * t_1 + t2 * t_2 + (0.0_f64.max(1.0 - t1 * t1 - t2 * t2)).sqrt() * vh;
+        let nh = t1 * t_1 + t2 * t_2 + (0.0_f32.max(1.0 - t1 * t1 - t2 * t2)).sqrt() * vh;
 
-        normalize(&F3::new(ax * nh.x, ay * nh.y, 0.0_f64.max(nh.z)))
+        normalize(&F3::new(ax * nh.x, ay * nh.y, 0.0_f32.max(nh.z)))
     }
 
     fn smithg(&self, ndotv: &F, alphag: F) -> F {
@@ -328,7 +328,7 @@ impl Tracer {
         let phi = crate::TWO_PI * r2;
         dir.x = r * phi.cos();
         dir.y = r * phi.sin();
-        dir.z = 0.0_f64.max(1.0 - dir.x * dir.x - dir.y * dir.y).sqrt();
+        dir.z = 0.0_f32.max(1.0 - dir.x * dir.x - dir.y * dir.y).sqrt();
         dir
     }
 
@@ -396,7 +396,7 @@ impl Tracer {
         let eta2 = eta * eta;
         let jacobian = dot(&l, &h).abs() / denom;
 
-        *pdf = g1 * 0.0_f64.max(dot(&v, &h)) * d * jacobian / v.z;
+        *pdf = g1 * 0.0_f32.max(dot(&v, &h)) * d * jacobian / v.z;
 
         (1.0 - material.metallic) * material.spec_trans * (1.0 - f) * d * g2 * dot(&v, &h).abs() * jacobian * eta2 / (l.z * v.z).abs() * pow(&material.rgb, &F3::new(0.5, 0.5, 0.5))
     }
@@ -625,5 +625,9 @@ impl Tracer {
         l.z.abs() * f
     }
 
+    /// Return a mutable reference to the scene.
+    pub fn scene(&mut self) -> &mut Box<dyn Scene> {
+        &mut self.scene
+    }
 
 }

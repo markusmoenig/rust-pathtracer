@@ -84,4 +84,7 @@ pub trait Scene : Sync + Send {
 
         hit
     }
+
+    fn as_any(&mut self) -> &mut dyn std::any::Any;
+
 }

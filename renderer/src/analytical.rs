@@ -153,6 +153,9 @@ impl Scene for AnalyticalScene {
         self.lights.len()
     }
 
+    fn as_any(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
 }
 
 // Analytical Intersections

@@ -82,7 +82,7 @@ impl Material {
     pub fn new() -> Self {
 
         Self {
-            rgb                 : F3::new(0.5, 0.5, 0.5),
+            rgb                 : F3::new(1.5, 1.5, 1.5),
             emission            : F3::new(0.0, 0.0, 0.0),
 
             anisotropic         : 0.0,
@@ -98,7 +98,7 @@ impl Material {
             clearcoat_gloss     : 0.0,
             clearcoat_roughness : 0.0,
             spec_trans          : 0.0,
-            ior                 : 1.5,
+            ior                 : 1.45,
 
             opacity             : 1.0,
             alpha_mode          : AlphaMode::Opaque,

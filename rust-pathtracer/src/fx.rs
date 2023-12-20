@@ -474,7 +474,7 @@ impl Mul for F3 {
     }
 }
 
-impl std::ops::Mul<F3> for f64 {
+impl std::ops::Mul<F3> for f32 {
     type Output = F3;
 
     fn mul(self, other: F3) -> F3 {
@@ -498,7 +498,7 @@ impl std::ops::DivAssign for F3 {
     }
 }
 
-impl Div<F3> for f64 {
+impl Div<F3> for f32 {
     type Output = F3;
 
     fn div(self, other: F3) -> F3 {
